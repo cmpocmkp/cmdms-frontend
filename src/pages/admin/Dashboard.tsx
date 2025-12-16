@@ -1,340 +1,480 @@
 /**
- * Admin Dashboard Page
- * EXACT replica of admin/dashboard.blade.php from old CMDMS
+ * Admin Dashboard Page - Department-Wise Dashboard
+ * EXACT replica of admin/report/department-wise-dashboard.blade.php from old CMDMS
+ * Includes DataTables with export buttons (Copy, Excel, CSV, PDF, Print) and Chart.js
  */
 
-import { useState } from 'react';
-import { mockDepartments } from '../../lib/mocks/data/departments';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
+import Select from 'react-select';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { 
+  mockDashboardDepartments, 
+  moduleRelations,
+  moduleDisplayNames,
+  mockModuleTotals,
+  calculateTotals
+} from '../../lib/mocks/data/dashboardDepartments';
+import type { DashboardDepartment } from '../../lib/mocks/data/dashboardDepartments';
+
+// Register Chart.js components
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ChartDataLabels);
 
 export default function Dashboard() {
-  const [selectedDepartments, setSelectedDepartments] = useState<number[]>([]);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [searchKeyword, setSearchKeyword] = useState('');
-  const [showResults, setShowResults] = useState(false);
+  // Filter state
+  const [selectedModules, setSelectedModules] = useState<string[]>(moduleRelations);
+  const [departmentFilter, setDepartmentFilter] = useState<'all' | 'departments' | 'district_administrations'>('all');
+  const tableRef = useRef<HTMLTableElement>(null);
+  const dataTableRef = useRef<any>(null);
   
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setShowResults(true);
-    // In real app, this would fetch filtered data
+  // Module select options
+  const moduleOptions = moduleRelations.map(module => ({
+    value: module,
+    label: moduleDisplayNames[module]
+  }));
+  
+  // Department filter options
+  const departmentFilterOptions = [
+    { value: 'all', label: 'All' },
+    { value: 'departments', label: 'Departments' },
+    { value: 'district_administrations', label: 'District Administrations' },
+  ];
+  
+  // Filter departments based on selected filters
+  const filteredDepartments = useMemo(() => {
+    let filtered = [...mockDashboardDepartments];
+    
+    // Apply department filter
+    if (departmentFilter === 'district_administrations') {
+      filtered = filtered.filter(dept => 
+        dept.name.toLowerCase().startsWith('dc ') || 
+        dept.name.toLowerCase().includes('district')
+      );
+    } else if (departmentFilter === 'departments') {
+      filtered = filtered.filter(dept => 
+        !dept.name.toLowerCase().startsWith('dc ') && 
+        !dept.name.toLowerCase().includes('district')
+      );
+    }
+    
+    return filtered;
+  }, [departmentFilter]);
+  
+  // Recalculate totals based on filtered departments
+  const overallTotals = useMemo(() => {
+    return calculateTotals(filteredDepartments);
+  }, [filteredDepartments]);
+  
+  // Summary cards data
+  const summaryCards = [
+    {
+      borderColor: '#3282FF',
+      title: 'Tasks',
+      minutesClass: 'total_minutes',
+      percentClass: '',
+      count: overallTotals.total_tasks,
+      percent: 0,
+      icon: 'ti-list'
+    },
+    {
+      borderColor: '#0E8160',
+      title: 'Completed',
+      minutesClass: 'completed_minutes',
+      percentClass: 'compl_percent',
+      count: overallTotals.total_completed,
+      percent: overallTotals.completed_percentage,
+      icon: 'ti-check'
+    },
+    {
+      borderColor: '#1DC39F',
+      title: 'On Target',
+      minutesClass: 'on_target_minutes',
+      percentClass: 'on_percent',
+      count: overallTotals.total_on_target,
+      percent: overallTotals.on_target_percentage,
+      icon: 'ti-target'
+    },
+    {
+      borderColor: '#E74039',
+      title: 'Overdue',
+      minutesClass: 'overdue_minutes',
+      percentClass: 'over_percent',
+      count: overallTotals.total_overdue,
+      percent: overallTotals.overdue_percentage,
+      icon: 'ti-timer'
+    },
+  ];
+  
+  // Chart data
+  const chartData = {
+    labels: selectedModules.map(m => moduleDisplayNames[m]),
+    datasets: [{
+      label: 'Tasks by Module',
+      data: selectedModules.map(m => mockModuleTotals[m] || 0),
+      backgroundColor: ['rgb(211 227 252)'],
+      borderColor: ['rgb(176 202 243)'],
+      borderWidth: 1
+    }]
   };
   
-  const handleReset = () => {
-    setSelectedDepartments([]);
-    setStartDate('');
-    setEndDate('');
-    setSearchKeyword('');
-    setShowResults(false);
+  // Chart options
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: true,
+    aspectRatio: 3.5,
+    onHover: (event: any, activeEls: any) => {
+      if (event && event.native && event.native.target) {
+        (event.native.target as HTMLElement).style.cursor = activeEls.length > 0 ? 'pointer' : 'default';
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Total Tasks'
+        },
+        ticks: {
+          stepSize: 100
+        }
+      },
+      x: {
+        title: {
+          display: true,
+          text: ' '
+        }
+      }
+    },
+    barPercentage: 0.3,
+    categoryPercentage: 0.9,
+    plugins: {
+      legend: {
+        display: false
+      },
+      datalabels: {
+        display: false
+      }
+    }
   };
+  
+  const handleApplyFilters = () => {
+    console.log('Filters applied:', { selectedModules, departmentFilter });
+  };
+  
+  const handleClearFilters = () => {
+    setSelectedModules(moduleRelations);
+    setDepartmentFilter('all');
+  };
+  
+  // Initialize DataTables
+  useEffect(() => {
+    if (tableRef.current && filteredDepartments.length > 0) {
+      // Load DataTables CSS
+      const datatablesCss = document.createElement('link');
+      datatablesCss.rel = 'stylesheet';
+      datatablesCss.href = 'https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css';
+      document.head.appendChild(datatablesCss);
+      
+      const buttonsCss = document.createElement('link');
+      buttonsCss.rel = 'stylesheet';
+      buttonsCss.href = 'https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css';
+      document.head.appendChild(buttonsCss);
+      
+      // Load jQuery and DataTables
+      const loadScript = (src: string) => {
+        return new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = src;
+          script.onload = resolve;
+          script.onerror = reject;
+          document.body.appendChild(script);
+        });
+      };
+      
+      const initializeDataTable = async () => {
+        try {
+          // Load jQuery first
+          if (!(window as any).jQuery) {
+            await loadScript('https://code.jquery.com/jquery-3.7.1.min.js');
+          }
+          
+          // Load DataTables
+          await loadScript('https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js');
+          await loadScript('https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js');
+          await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+          await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js');
+          await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js');
+          await loadScript('https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js');
+          await loadScript('https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js');
+          
+          const $ = (window as any).jQuery;
+          
+          // Destroy existing DataTable if it exists
+          if (dataTableRef.current) {
+            dataTableRef.current.destroy();
+          }
+          
+          // Initialize DataTable with export buttons
+          dataTableRef.current = $(tableRef.current).DataTable({
+            paging: false,
+            ordering: false,
+            searching: true,
+            dom: 'Bfrtip',
+            buttons: [
+              'copy',
+              'excel',
+              'csv',
+              'pdf',
+              'print'
+            ]
+          });
+        } catch (error) {
+          console.error('Error initializing DataTable:', error);
+        }
+      };
+      
+      initializeDataTable();
+    }
+    
+    return () => {
+      if (dataTableRef.current) {
+        dataTableRef.current.destroy();
+        dataTableRef.current = null;
+      }
+    };
+  }, [filteredDepartments]);
   
   return (
     <>
       <style>{`
-        .select2-container--default .select2-selection--multiple {
-          background-color: white;
-          border: 1px solid #caccd7;
-          border-radius: 2px!important;
-          cursor: text;
-          height: 46px!important;
+        .table-compact th {
+          padding: 0.5rem !important;
+          font-size: 0.85rem !important;
         }
-        .accordion .card .card-header h6, .accordion .card .card-header a {
-          color: #272020 !important;
+        .table-compact td {
+          padding: 0.1rem !important;
+          font-size: 0.85rem !important;
         }
-        .accordion .card .card-header {
-          padding: 1rem !important;
-          background-color: #F8C146 !important;
+        .table-compact th:nth-child(1), .table-compact td:nth-child(1) {
+          width: 30%;
+          min-width: 150px;
         }
-        .select2-container--default .select2-selection--multiple .select2-selection__choice {
-          color: #ffffff;
-          border: 0;
-          border-radius: 3px;
-          font-size: 8px !important;
-          font-family: inherit;
-          line-height: 1;
-          font-weight: bold!important;
-        }
-        #department_decision_detial_repsort, #involved_meetings_table {
-          width: 100% !important;
-        }
-        #department_decision_detial_repsort td, #involved_meetings_table td {
-          border: 1px solid silver !important;
-          vertical-align: top !important;
-          font-size: 16px !important;
-          padding: 0.5rem 1rem !important;
-        }
-        #department_decision_detial_repsort th, #involved_meetings_table th {
-          border: 1px solid silver !important;
-          text-align: center !important;
-          height: 35px;
-          padding: 0.5rem 1rem !important;
-          vertical-align: middle !important;
-          background-color: rgb(37, 136, 95) !important;
-          color: white !important;
-        }
-        .moduleCard {
-          background: linear-gradient(to bottom, #1e3c72 0%, #2a5298 100%);
-          padding: 20px;
-          border-radius: 8px;
+        .table-compact th:nth-child(n+2), .table-compact td:nth-child(n+2) {
+          width: 14%;
+          min-width: 80px;
           text-align: center;
-          transition: transform 0.3s ease;
-          cursor: pointer;
-          margin-bottom: 20px;
         }
-        .moduleCard:hover {
-          transform: translateY(-5px);
+        .table-responsive {
+          overflow-x: auto;
         }
-        .moduleCard.green {
-          background: linear-gradient(to bottom, #134e4a 0%, #166534 100%);
+        .card-custom {
+          border-radius: 0.75rem !important;
+          margin-right: 1rem !important;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
         }
-        .moduleCard .imgdiv {
-          margin-bottom: 10px;
+        .card-custom:last-child {
+          margin-right: 0 !important;
         }
-        .moduleCard h4 {
-          color: white;
-          font-size: 14px;
-          margin: 0;
-          font-weight: 500;
+        table.table td {
+          padding: 5px !important;
+        }
+        .record-notes-custom-card-analytics .card-body {
+          padding: 1rem !important;
+        }
+        .record-notes-custom-card-analytics .icon {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 1rem;
+        }
+        .record-notes-custom-card-analytics .icon i {
+          color: #fff;
+          font-size: 1.5rem;
+        }
+        .record-notes-custom-card-analytics h3 {
+          font-size: 1.75rem;
+        }
+        .record-notes-custom-card-analytics p {
+          font-size: 0.9rem;
+          margin-bottom: 0;
+        }
+        .bar-chart-box .stretch-card {
+          min-height: 300px;
+          max-height: 400px;
         }
       `}</style>
       
-      <div className="row">
-        {/* Filter Form Card */}
-        <div className="col-12 grid-margin stretch-card">
-          <div className="card">
-            <div className="card-body">
-              <form onSubmit={handleSubmit} id="filter_form" className="forms-sample">
-                <div className="row">
-                  <div className="col-md-4">
-                    <div className="form-group mb-2">
-                      <label>Department<span className="text-danger">*</span></label>
-                      <select 
-                        name="department" 
-                        id="select_department" 
-                        className="form-control select2"
-                        value={selectedDepartments[0] || ''}
-                        onChange={(e) => setSelectedDepartments(e.target.value ? [parseInt(e.target.value)] : [])}
-                        required
-                      >
-                        <option value="">Select Department</option>
-                        {mockDepartments.map(dept => (
-                          <option key={dept.id} value={dept.id}>
-                            {dept.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  
-                  <div className="col-md-2">
-                    <div className="form-group">
-                      <label>From Date</label>
-                      <input 
-                        type="date" 
-                        name="start_date" 
-                        className="form-control"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="col-md-2">
-                    <div className="form-group">
-                      <label>To Date</label>
-                      <input 
-                        type="date" 
-                        name="end_date" 
-                        className="form-control"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="col-md-4">
-                    <div className="form-group">
-                      <label>Search Keyword</label>
-                      <input 
-                        type="text"
-                        className="form-control"
-                        name="search_keyword"
-                        placeholder="Search in subject or decisions"
-                        value={searchKeyword}
-                        onChange={(e) => setSearchKeyword(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="row">
-                  <div className="col-md-4">
-                    <button type="submit" className="btn btn-success">Search</button>
-                    <button type="button" onClick={handleReset} className="btn btn-warning">Reset</button>
-                  </div>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-        
-        {/* Results or Module Cards */}
-        {!showResults ? (
-          /* Module Cards - Default View */
-          <div className="row mb-5 mt-3" style={{ width: '100%' }}>
-            <div className="col-xl-2 col-lg-2 col-md-2 col-sm-6 col-12">
-              <a href="/admin/report/filter/cm-meetings">
-                <div className="moduleCard">
-                  <div className="imgdiv">
-                    <img style={{ opacity: 'unset' }} src="/admin_assets/images/dashboard/cmdmsupdated.png" alt="CM DMS" />
-                  </div>
-                  <h4>CM | DMS</h4>
-                </div>
-              </a>
-            </div>
-            
-            <div className="col-xl-2 col-lg-2 col-md-2 col-sm-6 col-12">
-              <a href="/admin/report/consolidated">
-                <div className="moduleCard green">
-                  <div className="imgdiv">
-                    <svg width="100" height="100" viewBox="0 0 100 100" fill="none">
-                      <rect width="100" height="100" fill="white" fillOpacity="0.2"/>
-                      <text x="50" y="55" textAnchor="middle" fill="white" fontSize="16">Report</text>
-                    </svg>
-                  </div>
-                  <h4>Consolidated Report</h4>
-                </div>
-              </a>
-            </div>
-            
-            <div className="col-xl-2 col-lg-2 col-md-2 col-sm-6 col-12">
-              <a href="/admin/report/department-wise">
-                <div className="moduleCard green">
-                  <div className="imgdiv">
-                    <svg width="100" height="100" viewBox="0 0 100 100" fill="none">
-                      <rect width="100" height="100" fill="white" fillOpacity="0.2"/>
-                      <text x="50" y="55" textAnchor="middle" fill="white" fontSize="14">Dept</text>
-                    </svg>
-                  </div>
-                  <h4>Department-wise Report</h4>
-                </div>
-              </a>
-            </div>
-            
-            <div className="col-xl-2 col-lg-2 col-md-2 col-sm-6 col-12">
-              <a href="https://cmdu.kp.gov.pk/portal/admin" target="_blank" rel="noreferrer">
-                <div className="moduleCard">
-                  <div className="imgdiv">
-                    <img src="/admin_assets/images/dashboard/cmdu-updated.png" alt="CMDU" />
-                  </div>
-                  <h4>CMDU</h4>
-                </div>
-              </a>
-            </div>
-            
-            {/* Add more module cards as needed */}
-            <div className="col-12 mt-4">
-              <p className="text-muted text-center">
-                More modules will appear here based on permissions
-              </p>
-            </div>
-          </div>
-        ) : (
-          /* Filtered Results View */
-          <>
-            <div className="my-5 text-center">
-              <h3>
-                Search results for department - {mockDepartments.find(d => d.id === selectedDepartments[0])?.name || 'All'}
-              </h3>
-            </div>
-            
-            {/* Summary Cards would go here */}
-            <div className="row d-flex justify-content-end">
-              <div className="col-12">
-                <p className="text-muted text-center py-4">
-                  Filtered results will be displayed here with accordion sections for:
-                  <br />• Minutes of the meetings
-                  <br />• Sectoral agenda points
-                  <br />• Directives
-                  <br />• Cabinet minutes
-                  <br />• PTF minutes
-                  <br />• Announcements
-                </p>
-              </div>
-            </div>
-            
-            {/* Print Button */}
+      <div className="content-wrapper">
+        <div className="card">
+          <div className="card-body">
+            {/* Summary Cards Section */}
             <div className="row">
-              <div className="col-12 mb-2">
-                <button type="button" className="btn btn-info btn-icon-text pull-right" id="btnPrint">
-                  <i className="ti-printer mr-1"></i> Print all
-                </button>
-              </div>
-            </div>
-            
-            {/* Accordion with module data */}
-            <div className="row">
-              <div className="col-lg-12 grid-margin stretch-card cmdms-combined-report-accordion-list">
-                <div className="card">
-                  <div className="card-body">
-                    <div className="mt-4">
-                      <div className="accordion" id="accordion" role="tablist">
-                        
-                        {/* Minutes Section */}
-                        <div className="card">
-                          <div className="card-header" role="tab" id="heading-1">
-                            <h6 className="mb-0">
-                              <a data-toggle="collapse" href="#collapse-1" aria-expanded="true" aria-controls="collapse-1">
-                                Minutes of the meetings
-                              </a>
-                            </h6>
-                          </div>
-                          <div id="collapse-1" className="collapse show" role="tabpanel" aria-labelledby="heading-1" data-parent="#accordion">
-                            <div className="card-body">
-                              <p>Minutes data will be populated here</p>
-                            </div>
-                          </div>
+              <div className="col-md-12 d-flex justify-content-center flex-wrap">
+                {summaryCards.map((card, index) => (
+                  <div key={index} className="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-12 p-2">
+                    <div 
+                      className="card record-notes-custom-card-analytics" 
+                      style={{ borderBottom: `8px solid ${card.borderColor}` }}
+                    >
+                      <div className="card-body">
+                        <div className="icon" style={{ background: card.borderColor }}>
+                          <i className={card.icon}></i>
                         </div>
-                        
-                        {/* Sectoral Agenda Points */}
-                        <div className="card">
-                          <div className="card-header" role="tab" id="heading-2">
-                            <h6 className="mb-0">
-                              <a className="collapsed" data-toggle="collapse" href="#collapse-2" aria-expanded="false" aria-controls="collapse-2">
-                                Sectoral agenda points of the meetings
-                              </a>
-                            </h6>
-                          </div>
-                          <div id="collapse-2" className="collapse" role="tabpanel" aria-labelledby="heading-2" data-parent="#accordion">
-                            <div className="card-body">
-                              <p>Sectoral data will be populated here</p>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Directives */}
-                        <div className="card">
-                          <div className="card-header" role="tab" id="heading-3">
-                            <h6 className="mb-0">
-                              <a className="collapsed" data-toggle="collapse" href="#collapse-3" aria-expanded="false" aria-controls="collapse-3">
-                                Directives
-                              </a>
-                            </h6>
-                          </div>
-                          <div id="collapse-3" className="collapse" role="tabpanel" aria-labelledby="heading-3" data-parent="#accordion">
-                            <div className="card-body">
-                              <p>Directives data will be populated here</p>
-                            </div>
-                          </div>
-                        </div>
-                        
+                        <h3 
+                          className={`mb-2 ${card.minutesClass}`}
+                          style={{ color: card.borderColor }}
+                        >
+                          {card.count}
+                        </h3>
+                        <p>{card.title}</p>
+                        <p className={`mb-0 mt-2 ${card.percentClass}`}>
+                          {card.percent === 0 ? '\u00A0' : `${card.percent}%`}
+                        </p>
                       </div>
                     </div>
                   </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Filter Section */}
+            <div className="row form-row justify-content-center align-items-end mt-4">
+              <div className="col-md-12">
+                <div className="form-row align-items-end">
+                  <div className="col-md-1"></div>
+                  
+                  {/* Modules Multi-Select */}
+                  <div className="col-md-5">
+                    <div className="form-group mb-2">
+                      <label htmlFor="module">Modules</label>
+                      <Select
+                        isMulti
+                        options={moduleOptions}
+                        value={moduleOptions.filter(opt => selectedModules.includes(opt.value))}
+                        onChange={(selected) => setSelectedModules(selected.map(s => s.value))}
+                        className="basic-multi-select"
+                        classNamePrefix="select"
+                        placeholder="Select modules"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Department Filter */}
+                  <div className="col-md-2">
+                    <div className="form-group mb-2">
+                      <label htmlFor="department_filter">Department Filter</label>
+                      <Select
+                        options={departmentFilterOptions}
+                        value={departmentFilterOptions.find(opt => opt.value === departmentFilter)}
+                        onChange={(selected) => setDepartmentFilter(selected?.value as any || 'all')}
+                        className="basic-single"
+                        classNamePrefix="select"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Action Buttons */}
+                  <div className="col-md-4 d-flex align-items-end">
+                    <div className="form-group mb-2">
+                      <button 
+                        type="button" 
+                        className="btn btn-primary btn-md mr-2"
+                        onClick={handleApplyFilters}
+                      >
+                        Apply Filters
+                      </button>
+                      <button 
+                        type="button" 
+                        className="btn btn-secondary btn-md"
+                        onClick={handleClearFilters}
+                      >
+                        Clear Filters
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </>
-        )}
+            
+            {/* Data Table Section with DataTables */}
+            <div className="row mt-3">
+              <div className="col-md-12">
+                <div className="card mb-0">
+                  <div className="card-body table-responsive p-2">
+                    <h5 className="mb-3 text-center" style={{ color: '#6c757d' }}>
+                      Department/District Wise Tasks
+                    </h5>
+                    <table 
+                      ref={tableRef}
+                      className="table datatable table-bordered table-sm table-compact"
+                    >
+                      <thead>
+                        <tr>
+                          <th>Department</th>
+                          <th>Tasks</th>
+                          <th>Completed</th>
+                          <th>On Target</th>
+                          <th>Overdue</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredDepartments.length > 0 ? (
+                          filteredDepartments.map((department: DashboardDepartment) => (
+                            <tr key={department.id}>
+                              <td>
+                                <Link to={`/admin/report/department/${department.id}/dashboard`}>
+                                  {department.name}
+                                </Link>
+                              </td>
+                              <td style={{ backgroundColor: '#dbe9ff', color: '#000000' }}>
+                                <Link to={`/admin/report/department/${department.id}/dashboard`}>
+                                  {department.total_tasks_count}
+                                </Link>
+                              </td>
+                              <td style={{ backgroundColor: '#c7ede5', color: '#000000' }}>
+                                <Link to={`/admin/report/department/${department.id}/dashboard?status=1`}>
+                                  {department.total_completed_count}
+                                </Link>
+                              </td>
+                              <td style={{ backgroundColor: '#d2f4ef', color: '#000000' }}>
+                                <Link to={`/admin/report/department/${department.id}/dashboard?status=2`}>
+                                  {department.total_on_target_count}
+                                </Link>
+                              </td>
+                              <td style={{ backgroundColor: '#f66e68ab', color: '#000000' }}>
+                                <Link to={`/admin/report/department/${department.id}/dashboard?status=3`}>
+                                  {department.total_overdue_count}
+                                </Link>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={5} className="text-center">
+                              No departments found for the selected filters.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Bar Chart Section */}
+            <div className="row bar-chart-box" style={{ display: 'block', marginTop: '20px' }}>
+              <div className="col-lg-12">
+                <Bar data={chartData} options={chartOptions} />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </>
   );
