@@ -3,13 +3,39 @@
  * EXACT replica of admin/schemes/index.blade.php from old CMDMS
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { mockSchemes, schemeTypes, schemeCategories } from '../../../lib/mocks/data/schemes';
 import { schemeMockDistricts } from '../../../lib/mocks/data/schemes';
 
 export default function SchemesList() {
   const [schemes] = useState(mockSchemes);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Filter schemes based on search term
+  const filteredSchemes = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return schemes;
+    }
+
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    return schemes.filter((scheme) => {
+      const district = schemeMockDistricts.find(d => d.id === scheme.district_id);
+      const districtName = district?.name.toLowerCase() || '';
+      const schemeName = scheme.name.toLowerCase();
+      const code = scheme.code.toLowerCase();
+      const category = schemeCategories[scheme.category]?.toLowerCase() || scheme.category.toLowerCase();
+      const type = schemeTypes[scheme.type]?.toLowerCase() || scheme.type.toLowerCase();
+
+      return (
+        schemeName.includes(lowerSearchTerm) ||
+        code.includes(lowerSearchTerm) ||
+        districtName.includes(lowerSearchTerm) ||
+        category.includes(lowerSearchTerm) ||
+        type.includes(lowerSearchTerm)
+      );
+    });
+  }, [schemes, searchTerm]);
 
   return (
     <div className="content-wrapper">
@@ -40,6 +66,22 @@ export default function SchemesList() {
           </Link>
           <h4 className="card-title text-primary">All Schemes</h4>
 
+          {/* Search input */}
+          <div className="row mb-3">
+            <div className="col-md-4">
+              <div className="form-group">
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Search schemes by name, code, district, category, or type..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="row">
             <div className="col-12">
               <div className="table-responsive">
@@ -56,8 +98,8 @@ export default function SchemesList() {
                     </tr>
                   </thead>
                   <tbody>
-                    {schemes.length > 0 ? (
-                      schemes.map((scheme, index) => {
+                    {filteredSchemes.length > 0 ? (
+                      filteredSchemes.map((scheme, index) => {
                         // Find district name from district_id
                         const district = schemeMockDistricts.find(d => d.id === scheme.district_id);
 
@@ -111,7 +153,9 @@ export default function SchemesList() {
                       })
                     ) : (
                       <tr>
-                        <td colSpan={7}>There is no data.</td>
+                        <td colSpan={7}>
+                          {searchTerm ? `No schemes found matching "${searchTerm}"` : 'There is no data.'}
+                        </td>
                       </tr>
                     )}
                   </tbody>
