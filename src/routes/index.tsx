@@ -58,6 +58,13 @@ const CMRemarkReplies = lazy(() => import('../pages/admin/CMRemarks/CMRemarkRepl
 
 // Sectorial Meetings
 const SectorialMeetingsList = lazy(() => import('../pages/admin/SectorialMeetings/SectorialMeetingsList'));
+const AddSectorialMeeting = lazy(() => import('../pages/admin/SectorialMeetings/AddSectorialMeeting'));
+const EditSectorialMeeting = lazy(() => import('../pages/admin/SectorialMeetings/EditSectorialMeeting'));
+const SectorialAgendaPoints = lazy(() => import('../pages/admin/SectorialMeetings/SectorialAgendaPoints'));
+const AddSectorialAgendaPoint = lazy(() => import('../pages/admin/SectorialAgendaPoints/AddSectorialAgendaPoint'));
+const EditSectorialAgendaPoint = lazy(() => import('../pages/admin/SectorialAgendaPoints/EditSectorialAgendaPoint'));
+const SectorialAgendaPointRelatedDepartments = lazy(() => import('../pages/admin/SectorialAgendaPoints/SectorialAgendaPointRelatedDepartments'));
+const SectorialAgendaPointReplies = lazy(() => import('../pages/admin/SectorialAgendaPoints/SectorialAgendaPointReplies'));
 
 // Schemes
 const SchemesList = lazy(() => import('../pages/admin/Schemes/SchemesList'));
@@ -283,15 +290,31 @@ export const router = createBrowserRouter([
       },
       {
         path: 'sectorialmeetings/add',
-        element: withSuspense(SectorialMeetingsList), // TODO: Create AddSectorialMeeting component
+        element: withSuspense(AddSectorialMeeting),
       },
       {
         path: 'sectorialmeetings/edit/:id',
-        element: withSuspense(SectorialMeetingsList), // TODO: Create EditSectorialMeeting component
+        element: withSuspense(EditSectorialMeeting),
       },
       {
         path: 'sectorialmeetings/:id/agenda-points',
-        element: withSuspense(SectorialMeetingsList), // TODO: Create AgendaPoints component
+        element: withSuspense(SectorialAgendaPoints),
+      },
+      {
+        path: 'sectorialagendapoints/add',
+        element: withSuspense(AddSectorialAgendaPoint),
+      },
+      {
+        path: 'sectorialagendapoints/edit/:id',
+        element: withSuspense(EditSectorialAgendaPoint),
+      },
+      {
+        path: 'sectorialagendapoints/:id/related-departments',
+        element: withSuspense(SectorialAgendaPointRelatedDepartments),
+      },
+      {
+        path: 'replies/sectorial/agenda-point/:id',
+        element: withSuspense(SectorialAgendaPointReplies),
       },
       
       // Schemes Module

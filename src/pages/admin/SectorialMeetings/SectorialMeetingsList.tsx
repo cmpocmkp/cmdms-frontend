@@ -125,18 +125,26 @@ export default function SectorialMeetingsList() {
                               <i className="ti-pencil-alt"></i>
                             </Link>
 
-                            <button
-                              onClick={() => {
+                            <form
+                              method="POST"
+                              action="#"
+                              style={{ display: 'inline' }}
+                              onSubmit={(e) => {
+                                e.preventDefault();
                                 if (confirm('Are you sure you want to delete this meeting?')) {
                                   console.log('Delete sectorial meeting:', meeting.id);
                                   alert('Delete functionality will be implemented with backend API');
                                 }
                               }}
-                              style={{ width: '45px' }}
-                              className="btn btn-sm btn-danger mb-2 mx-2"
                             >
-                              <i className="ti-trash icon-sm"></i>
-                            </button>
+                              <button
+                                type="submit"
+                                style={{ width: '45px' }}
+                                className="btn btn-sm btn-danger mb-2 mx-2"
+                              >
+                                <i className="ti-trash icon-sm"></i>
+                              </button>
+                            </form>
                           </td>
                         </tr>
                       ))
