@@ -72,9 +72,11 @@ const TaskComments = lazy(() => import('../pages/admin/Tasks/TaskComments'));
 
 // Summaries
 const SummariesList = lazy(() => import('../pages/admin/Summaries/SummariesList'));
+const ShowSummary = lazy(() => import('../pages/admin/Summaries/ShowSummary'));
 
 // Trackers
 const TrackersList = lazy(() => import('../pages/admin/Trackers/TrackersList'));
+const ShowTracker = lazy(() => import('../pages/admin/Trackers/ShowTracker'));
 
 // Admin layout
 const AdminLayout = lazy(() => import('../components/shared/layout/AdminLayout'));
@@ -337,13 +339,17 @@ export const router = createBrowserRouter([
       },
       {
         path: 'summaries/show/:id',
-        element: withSuspense(SummariesList), // TODO: Create SummaryDetail component
+        element: withSuspense(ShowSummary),
       },
       
       // Trackers Module
       {
         path: 'trackers',
         element: withSuspense(TrackersList),
+      },
+      {
+        path: 'trackers/show/:id',
+        element: withSuspense(ShowTracker),
       },
       {
         path: 'trackers/add',
