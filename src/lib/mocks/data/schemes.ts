@@ -34,8 +34,27 @@ const mockDistricts = [
   { id: 10, name: 'Haripur' }
 ];
 
-const schemeCategories = ['Development', 'Infrastructure', 'Social Welfare', 'Education', 'Health'];
-const schemeTypes = ['Mega', 'District', 'Regular', 'Special'];
+// Scheme categories matching old CMDMS helpers.php
+export const schemeCategories: Record<string, string> = {
+  'mega': 'Mega Schemes',
+  'mega-high': 'Mega & High Priority Schemes',
+  'high-priority': 'High Priority Schemes',
+  'dfc-two-years': 'DFC (Two Years) Schemes',
+  'dfc-current-years': 'DFC (Current Year) Schemes',
+  'after-assembly': 'After Assembly Schemes',
+  'normal': 'Normal Schemes'
+};
+
+// Scheme types matching old CMDMS helpers.php
+export const schemeTypes: Record<string, string> = {
+  'adp': 'ADP',
+  'aip': 'AIP',
+  'ma-adp': 'MA-ADP',
+  'psdp': 'PSDP',
+  'own_source': 'Own Source',
+  'cpec': 'CPEC',
+  'other': 'Other'
+};
 
 // Generate mock schemes
 export const mockSchemes: Scheme[] = Array.from({ length: 100 }, (_, index) => {
@@ -47,8 +66,8 @@ export const mockSchemes: Scheme[] = Array.from({ length: 100 }, (_, index) => {
     code: `SCH-${faker.string.alphanumeric(6).toUpperCase()}`,
     district_id: district.id,
     district_name: district.name,
-    category: faker.helpers.arrayElement(schemeCategories),
-    type: faker.helpers.arrayElement(schemeTypes),
+    category: faker.helpers.arrayElement(Object.keys(schemeCategories)) as string,
+    type: faker.helpers.arrayElement(Object.keys(schemeTypes)) as string,
     department_id: faker.number.int({ min: 1, max: 30 }),
     department_name: faker.company.name() + ' Department',
     budget: faker.number.int({ min: 1000000, max: 100000000 }),
@@ -58,4 +77,4 @@ export const mockSchemes: Scheme[] = Array.from({ length: 100 }, (_, index) => {
   };
 });
 
-export { mockDistricts as schemeMockDistricts, schemeCategories, schemeTypes };
+export { mockDistricts as schemeMockDistricts };

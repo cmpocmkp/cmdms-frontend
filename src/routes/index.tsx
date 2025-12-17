@@ -68,6 +68,8 @@ const SectorialAgendaPointReplies = lazy(() => import('../pages/admin/SectorialA
 
 // Schemes
 const SchemesList = lazy(() => import('../pages/admin/Schemes/SchemesList'));
+const AddScheme = lazy(() => import('../pages/admin/Schemes/AddScheme'));
+const EditScheme = lazy(() => import('../pages/admin/Schemes/EditScheme'));
 
 // Inaugurations
 const InaugurationsList = lazy(() => import('../pages/admin/Inaugurations/InaugurationsList'));
@@ -324,11 +326,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'schemes/add',
-        element: withSuspense(SchemesList), // TODO: Create AddScheme component
+        element: withSuspense(AddScheme),
       },
       {
         path: 'schemes/edit/:id',
-        element: withSuspense(SchemesList), // TODO: Create EditScheme component
+        element: withSuspense(EditScheme),
       },
       
       // Inaugurations Module
