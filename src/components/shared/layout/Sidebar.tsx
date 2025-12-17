@@ -169,9 +169,9 @@ export function Sidebar() {
                   {/* Log Viewer - Only for user ID 1 */}
                   {user?.id === 1 && (
                     <li className="nav-item">
-                      <a className="nav-link" href="/log-viewer" target="_blank" rel="noreferrer">
+                      <Link className="nav-link" to="/admin/log-viewer">
                         <span className="menu-title">Log Viewer</span>
-                      </a>
+                      </Link>
                     </li>
                   )}
                   
@@ -224,9 +224,9 @@ export function Sidebar() {
                   {hasPermission('admin.recordnotes.departments') && (
                     <li className={cn(
                       "nav-item", 
-                      (isActive('/admin/record-notes') || isActive('/admin/report/minutes-detail')) && 'active'
+                      (isActive('/admin/recordnotes') || isActive('/admin/report/minutes-detail')) && 'active'
                     )}>
-                      <Link className="nav-link" to="/admin/record-notes/list">
+                      <Link className="nav-link" to="/admin/recordnotes">
                         <span className="menu-title">Minutes</span>
                       </Link>
                     </li>
@@ -270,8 +270,8 @@ export function Sidebar() {
                   
                   {/* Trackers (Interventions) */}
                   {hasPermission('admin.interventions.index') && (
-                    <li className={cn("nav-item", isActive('/admin/interventions') && 'active')}>
-                      <Link className="nav-link" to="/admin/report/interventions/detail">
+                    <li className={cn("nav-item", isActive('/admin/trackers') && 'active')}>
+                      <Link className="nav-link" to="/admin/trackers">
                         <span className="menu-title">Trackers</span>
                       </Link>
                     </li>

@@ -15,6 +15,67 @@ const AdminDashboard = lazy(() => import('../pages/admin/Dashboard'));
 const DepartmentDashboard = lazy(() => import('../pages/department/Dashboard'));
 const NotFoundPage = lazy(() => import('../pages/NotFoundPage'));
 
+// Admin modules
+const UsersList = lazy(() => import('../pages/admin/Users/UsersList'));
+const AddUser = lazy(() => import('../pages/admin/Users/AddUser'));
+const EditUser = lazy(() => import('../pages/admin/Users/EditUser'));
+const AssignDepartments = lazy(() => import('../pages/admin/Users/AssignDepartments'));
+const AssignPermissions = lazy(() => import('../pages/admin/Users/AssignPermissions'));
+const ApiTokens = lazy(() => import('../pages/admin/Users/ApiTokens'));
+const ExportUsers = lazy(() => import('../pages/admin/Users/ExportUsers'));
+const ActivityLogsList = lazy(() => import('../pages/admin/ActivityLogs/ActivityLogsList'));
+const TagsList = lazy(() => import('../pages/admin/Tags/TagsList'));
+const AddTag = lazy(() => import('../pages/admin/Tags/AddTag'));
+const EditTag = lazy(() => import('../pages/admin/Tags/EditTag'));
+const DepartmentsList = lazy(() => import('../pages/admin/Departments/DepartmentsList'));
+const AddDepartment = lazy(() => import('../pages/admin/Departments/AddDepartment'));
+const EditDepartment = lazy(() => import('../pages/admin/Departments/EditDepartment'));
+const LogViewerPage = lazy(() => import('../pages/admin/LogViewer/LogViewerPage'));
+
+// New modules - Minutes
+const MinutesList = lazy(() => import('../pages/admin/Minutes/MinutesList'));
+const AddMinute = lazy(() => import('../pages/admin/Minutes/AddMinute'));
+const EditMinute = lazy(() => import('../pages/admin/Minutes/EditMinute'));
+
+// Directives
+const DirectivesList = lazy(() => import('../pages/admin/Directives/DirectivesList'));
+const AddDirective = lazy(() => import('../pages/admin/Directives/AddDirective'));
+const DirectiveDepartments = lazy(() => import('../pages/admin/Directives/DirectiveDepartments'));
+const DirectiveReplies = lazy(() => import('../pages/admin/Directives/DirectiveReplies'));
+
+// Announcements
+const AnnouncementsList = lazy(() => import('../pages/admin/Announcements/AnnouncementsList'));
+const AddAnnouncement = lazy(() => import('../pages/admin/Announcements/AddAnnouncement'));
+const EditAnnouncement = lazy(() => import('../pages/admin/Announcements/EditAnnouncement'));
+const AnnouncementReplies = lazy(() => import('../pages/admin/Announcements/AnnouncementReplies'));
+
+// CM Remarks
+const CMRemarksList = lazy(() => import('../pages/admin/CMRemarks/CMRemarksList'));
+
+// Sectorial Meetings
+const SectorialMeetingsList = lazy(() => import('../pages/admin/SectorialMeetings/SectorialMeetingsList'));
+
+// Schemes
+const SchemesList = lazy(() => import('../pages/admin/Schemes/SchemesList'));
+
+// Inaugurations
+const InaugurationsList = lazy(() => import('../pages/admin/Inaugurations/InaugurationsList'));
+
+// PTIs
+const PTIsList = lazy(() => import('../pages/admin/PTIs/PTIsList'));
+const AddPTI = lazy(() => import('../pages/admin/PTIs/AddPTI'));
+const EditPTI = lazy(() => import('../pages/admin/PTIs/EditPTI'));
+const ShowPTI = lazy(() => import('../pages/admin/PTIs/ShowPTI'));
+
+// Tasks
+const TaskComments = lazy(() => import('../pages/admin/Tasks/TaskComments'));
+
+// Summaries
+const SummariesList = lazy(() => import('../pages/admin/Summaries/SummariesList'));
+
+// Trackers
+const TrackersList = lazy(() => import('../pages/admin/Trackers/TrackersList'));
+
 // Admin layout
 const AdminLayout = lazy(() => import('../components/shared/layout/AdminLayout'));
 const DepartmentLayout = lazy(() => import('../components/shared/layout/DepartmentLayout'));
@@ -48,7 +109,7 @@ export const router = createBrowserRouter([
   // Root redirect
   {
     path: '/',
-    element: <Navigate to="/admin/dashboard" replace />,
+    element: <Navigate to="/admin/report/department-wise-dashboard" replace />,
   },
   
   // Admin routes
@@ -60,19 +121,238 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
+      // Redirect old dashboard route to new route
       {
         path: 'dashboard',
+        element: <Navigate to="/admin/report/department-wise-dashboard" replace />,
+      },
+      // Department-wise dashboard (main dashboard)
+      {
+        path: 'report/department-wise-dashboard',
         element: withSuspense(AdminDashboard),
       },
-      // TODO: Add more admin routes here as modules are built
-      // {
-      //   path: 'directives',
-      //   element: withSuspense(DirectivesPage),
-      // },
-      // {
-      //   path: 'directives/:id',
-      //   element: withSuspense(DirectiveDetailPage),
-      // },
+      
+      // Admin Management Routes
+      {
+        path: 'users',
+        element: withSuspense(UsersList),
+      },
+      {
+        path: 'users/create',
+        element: withSuspense(AddUser),
+      },
+      {
+        path: 'users/edit/:id',
+        element: withSuspense(EditUser),
+      },
+      {
+        path: 'userdepartments/edit/:id',
+        element: withSuspense(AssignDepartments),
+      },
+      {
+        path: 'userpermission/edit/:id',
+        element: withSuspense(AssignPermissions),
+      },
+      {
+        path: 'users/:id/tokens',
+        element: withSuspense(ApiTokens),
+      },
+      {
+        path: 'users/export',
+        element: withSuspense(ExportUsers),
+      },
+      {
+        path: 'activitylogs',
+        element: withSuspense(ActivityLogsList),
+      },
+      {
+        path: 'tags',
+        element: withSuspense(TagsList),
+      },
+      {
+        path: 'tags/create',
+        element: withSuspense(AddTag),
+      },
+      {
+        path: 'tags/edit/:id',
+        element: withSuspense(EditTag),
+      },
+      {
+        path: 'departments',
+        element: withSuspense(DepartmentsList),
+      },
+      {
+        path: 'departments/create',
+        element: withSuspense(AddDepartment),
+      },
+      {
+        path: 'departments/edit/:id',
+        element: withSuspense(EditDepartment),
+      },
+      
+      // Log Viewer (Laravel package)
+      {
+        path: 'log-viewer',
+        element: withSuspense(LogViewerPage),
+      },
+      
+      // Minutes (Record Notes) Module
+      {
+        path: 'recordnotes',
+        element: withSuspense(MinutesList),
+      },
+      {
+        path: 'recordnotes/add',
+        element: withSuspense(AddMinute),
+      },
+      {
+        path: 'recordnotes/edit/:id',
+        element: withSuspense(EditMinute),
+      },
+      
+      // Directives Module
+      {
+        path: 'directives',
+        element: withSuspense(DirectivesList),
+      },
+      {
+        path: 'directives/add',
+        element: withSuspense(AddDirective),
+      },
+      {
+        path: 'directives/:id/departments',
+        element: withSuspense(DirectiveDepartments),
+      },
+      {
+        path: 'replies/directive/:id',
+        element: withSuspense(DirectiveReplies),
+      },
+      
+      // Announcements Module
+      {
+        path: 'announcements',
+        element: withSuspense(AnnouncementsList),
+      },
+      {
+        path: 'announcements/add',
+        element: withSuspense(AddAnnouncement),
+      },
+      {
+        path: 'announcements/edit/:id',
+        element: withSuspense(EditAnnouncement),
+      },
+      {
+        path: 'replies/announcements/:id',
+        element: withSuspense(AnnouncementReplies),
+      },
+      
+      // CM Remarks Module
+      {
+        path: 'cmremarks',
+        element: withSuspense(CMRemarksList),
+      },
+      {
+        path: 'cmremarks/add',
+        element: withSuspense(CMRemarksList), // TODO: Create AddCMRemark component
+      },
+      {
+        path: 'cmremarks/edit/:id',
+        element: withSuspense(CMRemarksList), // TODO: Create EditCMRemark component
+      },
+      
+      // Sectorial Meetings Module
+      {
+        path: 'sectorialmeetings',
+        element: withSuspense(SectorialMeetingsList),
+      },
+      {
+        path: 'sectorialmeetings/add',
+        element: withSuspense(SectorialMeetingsList), // TODO: Create AddSectorialMeeting component
+      },
+      {
+        path: 'sectorialmeetings/edit/:id',
+        element: withSuspense(SectorialMeetingsList), // TODO: Create EditSectorialMeeting component
+      },
+      {
+        path: 'sectorialmeetings/:id/agenda-points',
+        element: withSuspense(SectorialMeetingsList), // TODO: Create AgendaPoints component
+      },
+      
+      // Schemes Module
+      {
+        path: 'schemes',
+        element: withSuspense(SchemesList),
+      },
+      {
+        path: 'schemes/add',
+        element: withSuspense(SchemesList), // TODO: Create AddScheme component
+      },
+      {
+        path: 'schemes/edit/:id',
+        element: withSuspense(SchemesList), // TODO: Create EditScheme component
+      },
+      
+      // Inaugurations Module
+      {
+        path: 'inaugurations',
+        element: withSuspense(InaugurationsList),
+      },
+      {
+        path: 'inaugurations/add',
+        element: withSuspense(InaugurationsList), // TODO: Create AddInauguration component
+      },
+      {
+        path: 'inaugurations/edit/:id',
+        element: withSuspense(InaugurationsList), // TODO: Create EditInauguration component
+      },
+      
+      // PTIs KP Module
+      {
+        path: 'ptis',
+        element: withSuspense(PTIsList),
+      },
+      {
+        path: 'ptis/create',
+        element: withSuspense(AddPTI),
+      },
+      {
+        path: 'ptis/:id',
+        element: withSuspense(ShowPTI),
+      },
+      {
+        path: 'ptis/edit/:id',
+        element: withSuspense(EditPTI),
+      },
+      
+      // Tasks Module (Comments/Chat)
+      {
+        path: 'tasks/:taskId/comments',
+        element: withSuspense(TaskComments),
+      },
+      
+      // Summaries for CM Module
+      {
+        path: 'summaries',
+        element: withSuspense(SummariesList),
+      },
+      {
+        path: 'summaries/show/:id',
+        element: withSuspense(SummariesList), // TODO: Create SummaryDetail component
+      },
+      
+      // Trackers Module
+      {
+        path: 'trackers',
+        element: withSuspense(TrackersList),
+      },
+      {
+        path: 'trackers/add',
+        element: withSuspense(TrackersList), // TODO: Create AddTracker component
+      },
+      {
+        path: 'trackers/edit/:id',
+        element: withSuspense(TrackersList), // TODO: Create EditTracker component
+      },
     ],
   },
   
