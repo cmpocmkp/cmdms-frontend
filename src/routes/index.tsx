@@ -51,6 +51,10 @@ const AnnouncementReplies = lazy(() => import('../pages/admin/Announcements/Anno
 
 // CM Remarks
 const CMRemarksList = lazy(() => import('../pages/admin/CMRemarks/CMRemarksList'));
+const AddCMRemark = lazy(() => import('../pages/admin/CMRemarks/AddCMRemark'));
+const EditCMRemark = lazy(() => import('../pages/admin/CMRemarks/EditCMRemark'));
+const EditCMRemarkDepartments = lazy(() => import('../pages/admin/CMRemarks/EditCMRemarkDepartments'));
+const CMRemarkReplies = lazy(() => import('../pages/admin/CMRemarks/CMRemarkReplies'));
 
 // Sectorial Meetings
 const SectorialMeetingsList = lazy(() => import('../pages/admin/SectorialMeetings/SectorialMeetingsList'));
@@ -255,11 +259,19 @@ export const router = createBrowserRouter([
       },
       {
         path: 'cmremarks/add',
-        element: withSuspense(CMRemarksList), // TODO: Create AddCMRemark component
+        element: withSuspense(AddCMRemark),
       },
       {
         path: 'cmremarks/edit/:id',
-        element: withSuspense(CMRemarksList), // TODO: Create EditCMRemark component
+        element: withSuspense(EditCMRemark),
+      },
+      {
+        path: 'cmremarks/departments/:id',
+        element: withSuspense(EditCMRemarkDepartments),
+      },
+      {
+        path: 'cmremarks/replies/:id',
+        element: withSuspense(CMRemarkReplies),
       },
       
       // Sectorial Meetings Module

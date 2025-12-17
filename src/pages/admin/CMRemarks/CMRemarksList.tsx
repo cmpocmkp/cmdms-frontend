@@ -3,38 +3,32 @@
  * EXACT replica of admin/cmremarks/index.blade.php from old CMDMS
  */
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { mockCMRemarks } from '../../../lib/mocks/data/cmRemarks';
 
 export default function CMRemarksList() {
   const [cmRemarks] = useState(mockCMRemarks);
-  const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
 
-  const filteredRemarks = useMemo(() => {
-    if (!searchTerm) return cmRemarks;
-    
-    return cmRemarks.filter(remark =>
-      remark.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      remark.letter_number.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [cmRemarks, searchTerm]);
-
-  const totalPages = Math.ceil(filteredRemarks.length / itemsPerPage);
+  const totalPages = Math.ceil(cmRemarks.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedRemarks = filteredRemarks.slice(startIndex, endIndex);
+  const paginatedRemarks = cmRemarks.slice(startIndex, endIndex);
 
+  // badgesWithStatus mapping from old CMDMS
   const getBadgeClass = (status: string) => {
-    switch (status) {
-      case 'Completed': return 'badge-success';
-      case 'On Target': return 'badge-info';
-      case 'In Progress': return 'badge-warning';
-      case 'Overdue': return 'badge-danger';
-      default: return 'badge-secondary';
-    }
+    const badgesWithStatus: Record<string, string> = {
+      "Completed": "success",
+      "On Target": "warning",
+      "Overdue": "danger",
+      "Off Target": "info",
+      "Ongoing": "ongoing",
+      "Overdue Other Reason": "indigo",
+      "Off Target Reason": "lightred"
+    };
+    return badgesWithStatus[status] || "secondary";
   };
 
   return (
@@ -46,22 +40,6 @@ export default function CMRemarksList() {
           </Link>
 
           <h4 className="card-title text-primary">CM Remarks</h4>
-
-          {/* Search */}
-          <div className="row mb-3">
-            <div className="col-md-6">
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Search by subject or letter number..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setCurrentPage(1);
-                }}
-              />
-            </div>
-          </div>
 
           {cmRemarks.length > 0 ? (
             <>
@@ -112,8 +90,8 @@ export default function CMRemarksList() {
                               </td>
                               <td>{remark.comments ? remark.comments.split('\n').map((line, i) => <span key={i}>{line}<br/></span>) : '-'}</td>
                               <td style={{ width: '120px' }}>
-                                <label className={`badge ${getBadgeClass(remark.status)} badge-pill`}>
-                                  {remark.status}
+                                <label className={`badge badge-${getBadgeClass(remark.status)} badge-pill`}>
+                                  {remark.status ?? ""}
                                 </label>
                               </td>
                               <td>
