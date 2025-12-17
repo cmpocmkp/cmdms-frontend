@@ -3,33 +3,67 @@
  * EXACT replica of admin/inaugrations/index.blade.php from old CMDMS
  */
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { mockInaugurations } from '../../../lib/mocks/data/inaugurations';
 
+// Format date as 'jS F' (e.g., "15th December")
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  const day = date.getDate();
+  const month = date.toLocaleDateString('en-GB', { month: 'long' });
+  
+  // Add ordinal suffix
+  const getOrdinalSuffix = (n: number): string => {
+    const s = ['th', 'st', 'nd', 'rd'];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
+  
+  return `${getOrdinalSuffix(day)} ${month}`;
+};
+
 export default function InaugurationsList() {
   const [inaugurations] = useState(mockInaugurations);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 15;
-
-  const filteredInaugurations = useMemo(() => {
-    if (!searchTerm) return inaugurations;
-    
-    return inaugurations.filter(inauguration =>
-      inauguration.project_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inauguration.department_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inauguration.district_name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [inaugurations, searchTerm]);
-
-  const totalPages = Math.ceil(filteredInaugurations.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedInaugurations = filteredInaugurations.slice(startIndex, endIndex);
 
   return (
     <div className="content-wrapper">
+      <style>
+        {`
+          table#directive-listing td p {
+            width: 100px !important;
+          }
+          table#directive-listing td {
+            width: 100px !important;
+          }
+          table#directive-listing th {
+            padding: 10px !important;
+          }
+          .modal .modal-dialog {
+            margin-top: 70px !important;
+          }
+          /* Action column icon buttons styling */
+          table#directive-listing td .btn-icon-text {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            margin-right: 8px;
+          }
+          table#directive-listing td .btn-icon-text i {
+            font-size: 14px;
+            line-height: 1;
+          }
+          table#directive-listing td .btn-icon-text:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+          }
+        `}
+      </style>
       <div className="card">
         <div className="card-body">
           <Link to="/admin/inaugurations/add" style={{ float: 'right' }}>
@@ -37,31 +71,10 @@ export default function InaugurationsList() {
           </Link>
           <h4 className="card-title text-primary">inaugurations</h4>
 
-          {/* Search */}
-          <div className="row mb-3">
-            <div className="col-md-6">
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Search inaugurations..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setCurrentPage(1);
-                }}
-              />
-            </div>
-            <div className="col-md-6 text-right">
-              <span className="text-muted">
-                Showing {startIndex + 1} to {Math.min(endIndex, filteredInaugurations.length)} of {filteredInaugurations.length} entries
-              </span>
-            </div>
-          </div>
-
           <div className="row">
             <div className="col-12">
               <div className="table-responsive">
-                <table id="directive-listing" className="table table-striped" role="grid">
+                <table id="directive-listing" className="table-striped" role="grid">
                   <thead>
                     <tr>
                       <th style={{ width: '15px' }}>S.NO</th>
@@ -77,47 +90,80 @@ export default function InaugurationsList() {
                     </tr>
                   </thead>
                   <tbody>
-                    {paginatedInaugurations.length > 0 ? (
-                      paginatedInaugurations.map((inauguration, index) => (
+                    {inaugurations.length > 0 ? (
+                      inaugurations.map((inauguration, index) => (
                         <tr key={inauguration.id}>
-                          <td style={{ width: '15px' }}>{startIndex + index + 1}</td>
+                          <td style={{ width: '15px' }}>{index + 1}</td>
                           <td style={{ width: '100px' }}>{inauguration.department_name}</td>
                           <td style={{ width: '100px' }}>
-                            {inauguration.project_name}<br/>
-                            {inauguration.scheme}
+                            <div dangerouslySetInnerHTML={{ __html: (inauguration.project_name || '') }} />
+                            <br/>
+                            <div dangerouslySetInnerHTML={{ __html: (inauguration.scheme || '') }} />
+                            <br/>
+                            {inauguration.attachments && inauguration.attachments.length > 0 && (
+                              <>
+                                {inauguration.attachments.map((file, idx) => (
+                                  <span key={idx}>
+                                    <a
+                                      href="#"
+                                      title="click to download attach file"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        console.log('Download attachment:', file);
+                                      }}
+                                    >
+                                      Attachment:<i className="ti-file"></i>
+                                    </a>
+                                  </span>
+                                ))}
+                              </>
+                            )}
                           </td>
-                          <td style={{ width: '100px' }}>{inauguration.cost}</td>
-                          <td style={{ width: '100px' }}>{inauguration.description}</td>
+                          <td style={{ width: '100px' }}>{inauguration.cost ?? ''}</td>
+                          <td style={{ width: '100px' }}>
+                            <div dangerouslySetInnerHTML={{ __html: inauguration.description ?? '' }} />
+                          </td>
                           <td style={{ width: '100px' }}>{inauguration.district_name}</td>
                           <td style={{ width: '100px' }}>{inauguration.division_name}</td>
+                          <td style={{ width: '100px' }}>{formatDate(inauguration.date)}</td>
                           <td style={{ width: '100px' }}>
-                            {new Date(inauguration.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}
+                            <div dangerouslySetInnerHTML={{ __html: inauguration.remarks ?? '' }} />
                           </td>
-                          <td style={{ width: '100px' }}>{inauguration.remarks || '-'}</td>
                           <td style={{ width: '100px' }}>
-                            <Link
-                              to={`/admin/inaugurations/edit/${inauguration.id}`}
-                              className="inauguration_id"
-                              style={{ float: 'left', width: '20px' }}
-                              title="edit"
-                            >
-                              <i className="ti-pencil-alt icon-sm"></i>
-                            </Link>
-                            &nbsp;&nbsp;
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (confirm('Are you sure to delete?')) {
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <Link
+                                to={`/admin/inaugurations/edit/${inauguration.id}`}
+                                className="btn btn-primary btn-icon-text inauguration_id"
+                                title="edit"
+                              >
+                                <i className="ti-pencil-alt icon-sm"></i>
+                              </Link>
+                              <form
+                                action="#"
+                                method="POST"
+                                style={{ margin: 0 }}
+                                onSubmit={(e) => {
+                                  e.preventDefault();
                                   console.log('Delete inauguration:', inauguration.id);
                                   alert('Delete functionality will be implemented with backend API');
-                                }
-                              }}
-                              className="btn btn-danger btn-icon-text"
-                              title="delete"
-                              style={{ marginLeft: '10px' }}
-                            >
-                              <i className="ti-trash icon-sm"></i>
-                            </button>
+                                }}
+                              >
+                                <button
+                                  type="submit"
+                                  className="btn btn-danger btn-icon-text"
+                                  title="delete"
+                                  onClick={(e) => {
+                                    if (!confirm('Are you sure to delete?')) {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                    }
+                                  }}
+                                  style={{ marginRight: 0 }}
+                                >
+                                  <i className="ti-trash icon-sm"></i>
+                                </button>
+                              </form>
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -131,32 +177,6 @@ export default function InaugurationsList() {
               </div>
             </div>
           </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="row mt-3">
-              <div className="col-12">
-                <nav>
-                  <ul className="pagination justify-content-center">
-                    <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                      <button className="page-link" onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>Previous</button>
-                    </li>
-                    {[...Array(Math.min(5, totalPages))].map((_, index) => {
-                      const pageNum = index + 1;
-                      return (
-                        <li key={pageNum} className={`page-item ${currentPage === pageNum ? 'active' : ''}`}>
-                          <button className="page-link" onClick={() => setCurrentPage(pageNum)}>{pageNum}</button>
-                        </li>
-                      );
-                    })}
-                    <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                      <button className="page-link" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}>Next</button>
-                    </li>
-                  </ul>
-                </nav>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

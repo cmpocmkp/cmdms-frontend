@@ -64,6 +64,8 @@ const SchemesList = lazy(() => import('../pages/admin/Schemes/SchemesList'));
 
 // Inaugurations
 const InaugurationsList = lazy(() => import('../pages/admin/Inaugurations/InaugurationsList'));
+const AddInauguration = lazy(() => import('../pages/admin/Inaugurations/AddInauguration'));
+const EditInauguration = lazy(() => import('../pages/admin/Inaugurations/EditInauguration'));
 
 // PTIs
 const PTIsList = lazy(() => import('../pages/admin/PTIs/PTIsList'));
@@ -313,11 +315,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'inaugurations/add',
-        element: withSuspense(InaugurationsList), // TODO: Create AddInauguration component
+        element: withSuspense(AddInauguration),
       },
       {
         path: 'inaugurations/edit/:id',
-        element: withSuspense(InaugurationsList), // TODO: Create EditInauguration component
+        element: withSuspense(EditInauguration),
       },
       
       // PTIs KP Module
