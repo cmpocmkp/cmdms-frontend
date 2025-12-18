@@ -25,9 +25,9 @@ export function Sidebar() {
   // Nested submenu states for Admin section
   const [boardsMenuOpen, setBoardsMenuOpen] = useState(location.pathname.startsWith('/admin/board'));
   const [fundsDistMenuOpen, setFundsDistMenuOpen] = useState(
-    location.pathname.startsWith('/admin/annualschemes') || 
-    location.pathname.startsWith('/admin/distributed') || 
-    location.pathname.startsWith('/admin/candidate')
+    location.pathname.startsWith('/admin/funds/annualschemes') || 
+    location.pathname.startsWith('/admin/funds/distributions') || 
+    location.pathname.startsWith('/admin/candidate/distributed-fund')
   );
   
   // Nested submenu states for Reports section
@@ -361,7 +361,7 @@ export function Sidebar() {
                   {hasPermission('admin.annualschemes.index') && (
                     <li className={cn(
                       "nav-item",
-                      (isActive('/admin/annualschemes') || isActive('/admin/distributed') || isActive('/admin/candidate')) && 'active'
+                      (isActive('/admin/funds/annualschemes') || isActive('/admin/funds/distributions') || isActive('/admin/candidate/distributed-fund')) && 'active'
                     )}>
                       <a 
                         className="nav-link" 
@@ -383,17 +383,17 @@ export function Sidebar() {
                         style={{ display: fundsDistMenuOpen ? 'block' : 'none' }}
                       >
                         <ul className="nav flex-column sub-menu">
-                          <li className={cn("nav-item", isActive('/admin/annualschemes') && 'active')}>
-                            <Link className="nav-link" to="/admin/annualschemes">Annual Schemes</Link>
+                          <li className={cn("nav-item", isActive('/admin/funds/annualschemes') && 'active')}>
+                            <Link className="nav-link" to="/admin/funds/annualschemes">Annual Schemes</Link>
                           </li>
                           {hasPermission('admin.distributed.schemes') && (
-                            <li className={cn("nav-item", isActive('/admin/distributed/schemes') && 'active')}>
-                              <Link className="nav-link" to="/admin/distributed/schemes">Distributed Schemes</Link>
+                            <li className={cn("nav-item", isActive('/admin/funds/distributions/distributed-schemes') && 'active')}>
+                              <Link className="nav-link" to="/admin/funds/distributions/distributed-schemes">Distributed Schemes</Link>
                             </li>
                           )}
                           {hasPermission('admin.candidate.distributed.fund.report') && (
-                            <li className={cn("nav-item", isActive('/admin/candidate/distributed-fund-report') && 'active')}>
-                              <Link className="nav-link" to="/admin/candidate/distributed-fund-report">Candidate Report</Link>
+                            <li className={cn("nav-item", isActive('/admin/candidate/distributed-fund/report') && 'active')}>
+                              <Link className="nav-link" to="/admin/candidate/distributed-fund/report">Candidate Report</Link>
                             </li>
                           )}
                         </ul>

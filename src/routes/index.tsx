@@ -96,6 +96,16 @@ const EditAgendaPoint = lazy(() => import('../pages/admin/AgendaPoints/EditAgend
 // Board Agenda Point Replies
 const BoardAgendaPointReplies = lazy(() => import('../pages/admin/BoardAgendaPoints/BoardAgendaPointReplies'));
 
+// Funds Distribution Modules
+const AnnualSchemesList = lazy(() => import('../pages/admin/Funds/AnnualSchemes/AnnualSchemesList'));
+const AddAnnualScheme = lazy(() => import('../pages/admin/Funds/AnnualSchemes/AddAnnualScheme'));
+const EditAnnualScheme = lazy(() => import('../pages/admin/Funds/AnnualSchemes/EditAnnualScheme'));
+const ShowAnnualScheme = lazy(() => import('../pages/admin/Funds/AnnualSchemes/ShowAnnualScheme'));
+const FundDistributionsIndex = lazy(() => import('../pages/admin/Funds/Distributions/FundDistributionsIndex'));
+const EditFundDistribution = lazy(() => import('../pages/admin/Funds/Distributions/EditFundDistribution'));
+const DistributedSchemesList = lazy(() => import('../pages/admin/Funds/Distributions/DistributedSchemesList'));
+const CandidateDistributedFundReport = lazy(() => import('../pages/admin/Funds/Reports/CandidateDistributedFundReport'));
+
 // Inaugurations
 const InaugurationsList = lazy(() => import('../pages/admin/Inaugurations/InaugurationsList'));
 const AddInauguration = lazy(() => import('../pages/admin/Inaugurations/AddInauguration'));
@@ -440,6 +450,40 @@ export const router = createBrowserRouter([
       {
         path: 'replies/board/agenda-point/:id',
         element: withSuspense(BoardAgendaPointReplies),
+      },
+      
+      // Funds Distribution Module
+      {
+        path: 'funds/annualschemes',
+        element: withSuspense(AnnualSchemesList),
+      },
+      {
+        path: 'funds/annualschemes/add',
+        element: withSuspense(AddAnnualScheme),
+      },
+      {
+        path: 'funds/annualschemes/edit/:id',
+        element: withSuspense(EditAnnualScheme),
+      },
+      {
+        path: 'funds/annualschemes/show/:id',
+        element: withSuspense(ShowAnnualScheme),
+      },
+      {
+        path: 'funds/distributions',
+        element: withSuspense(FundDistributionsIndex),
+      },
+      {
+        path: 'funds/distributions/edit',
+        element: withSuspense(EditFundDistribution),
+      },
+      {
+        path: 'funds/distributions/distributed-schemes',
+        element: withSuspense(DistributedSchemesList),
+      },
+      {
+        path: 'candidate/distributed-fund/report',
+        element: withSuspense(CandidateDistributedFundReport),
       },
       
       // PTIs KP Module
