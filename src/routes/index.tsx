@@ -71,6 +71,31 @@ const SchemesList = lazy(() => import('../pages/admin/Schemes/SchemesList'));
 const AddScheme = lazy(() => import('../pages/admin/Schemes/AddScheme'));
 const EditScheme = lazy(() => import('../pages/admin/Schemes/EditScheme'));
 
+// Board Meetings
+const BoardMeetingsList = lazy(() => import('../pages/admin/BoardMeetings/BoardMeetingsList'));
+const AddBoardMeeting = lazy(() => import('../pages/admin/BoardMeetings/AddBoardMeeting'));
+const EditBoardMeeting = lazy(() => import('../pages/admin/BoardMeetings/EditBoardMeeting'));
+const ShowBoardMeeting = lazy(() => import('../pages/admin/BoardMeetings/ShowBoardMeeting'));
+const BoardAgendaPoints = lazy(() => import('../pages/admin/BoardMeetings/BoardAgendaPoints'));
+
+// Board Acts
+const BoardActsList = lazy(() => import('../pages/admin/BoardActs/BoardActsList'));
+const AddBoardAct = lazy(() => import('../pages/admin/BoardActs/AddBoardAct'));
+const EditBoardAct = lazy(() => import('../pages/admin/BoardActs/EditBoardAct'));
+const ShowBoardAct = lazy(() => import('../pages/admin/BoardActs/ShowBoardAct'));
+
+// Board Members
+const BoardMembersList = lazy(() => import('../pages/admin/BoardMembers/BoardMembersList'));
+const AddBoardMember = lazy(() => import('../pages/admin/BoardMembers/AddBoardMember'));
+const EditBoardMember = lazy(() => import('../pages/admin/BoardMembers/EditBoardMember'));
+
+// Agenda Points (for Board Meetings)
+const AddAgendaPoint = lazy(() => import('../pages/admin/AgendaPoints/AddAgendaPoint'));
+const EditAgendaPoint = lazy(() => import('../pages/admin/AgendaPoints/EditAgendaPoint'));
+
+// Board Agenda Point Replies
+const BoardAgendaPointReplies = lazy(() => import('../pages/admin/BoardAgendaPoints/BoardAgendaPointReplies'));
+
 // Inaugurations
 const InaugurationsList = lazy(() => import('../pages/admin/Inaugurations/InaugurationsList'));
 const AddInauguration = lazy(() => import('../pages/admin/Inaugurations/AddInauguration'));
@@ -345,6 +370,76 @@ export const router = createBrowserRouter([
       {
         path: 'inaugurations/edit/:id',
         element: withSuspense(EditInauguration),
+      },
+      
+      // Board Meetings Module
+      {
+        path: 'boardmeetings',
+        element: withSuspense(BoardMeetingsList),
+      },
+      {
+        path: 'boardmeetings/add',
+        element: withSuspense(AddBoardMeeting),
+      },
+      {
+        path: 'boardmeetings/edit/:id',
+        element: withSuspense(EditBoardMeeting),
+      },
+      {
+        path: 'boardmeetings/show/:id',
+        element: withSuspense(ShowBoardMeeting),
+      },
+      {
+        path: 'boardmeetings/:boardId/agenda-points/:meetingId',
+        element: withSuspense(BoardAgendaPoints),
+      },
+      
+      // Board Acts Module
+      {
+        path: 'boardacts',
+        element: withSuspense(BoardActsList),
+      },
+      {
+        path: 'boardacts/add',
+        element: withSuspense(AddBoardAct),
+      },
+      {
+        path: 'boardacts/edit/:id',
+        element: withSuspense(EditBoardAct),
+      },
+      {
+        path: 'boardacts/show/:id',
+        element: withSuspense(ShowBoardAct),
+      },
+      
+      // Board Members Module
+      {
+        path: 'boardmembers',
+        element: withSuspense(BoardMembersList),
+      },
+      {
+        path: 'boardmembers/add',
+        element: withSuspense(AddBoardMember),
+      },
+      {
+        path: 'boardmembers/edit/:id',
+        element: withSuspense(EditBoardMember),
+      },
+      
+      // Agenda Points (for Board Meetings)
+      {
+        path: 'agendapoints/add',
+        element: withSuspense(AddAgendaPoint),
+      },
+      {
+        path: 'agendapoints/edit/:id',
+        element: withSuspense(EditAgendaPoint),
+      },
+      
+      // Board Agenda Point Replies
+      {
+        path: 'replies/board/agenda-point/:id',
+        element: withSuspense(BoardAgendaPointReplies),
       },
       
       // PTIs KP Module
