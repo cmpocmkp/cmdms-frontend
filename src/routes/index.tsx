@@ -106,6 +106,40 @@ const EditFundDistribution = lazy(() => import('../pages/admin/Funds/Distributio
 const DistributedSchemesList = lazy(() => import('../pages/admin/Funds/Distributions/DistributedSchemesList'));
 const CandidateDistributedFundReport = lazy(() => import('../pages/admin/Funds/Reports/CandidateDistributedFundReport'));
 
+// Review Meetings
+const ReviewMeetingsList = lazy(() => import('../pages/admin/ReviewMeetings/ReviewMeetingsList'));
+const AddReviewMeeting = lazy(() => import('../pages/admin/ReviewMeetings/AddReviewMeeting'));
+const EditReviewMeeting = lazy(() => import('../pages/admin/ReviewMeetings/EditReviewMeeting'));
+
+// Candidate Requests (MNA/MPA Requests)
+const CandidateRequestsList = lazy(() => import('../pages/admin/CandidateRequests/CandidateRequestsList'));
+const AddCandidateRequest = lazy(() => import('../pages/admin/CandidateRequests/AddCandidateRequest'));
+const EditCandidateRequest = lazy(() => import('../pages/admin/CandidateRequests/EditCandidateRequest'));
+
+// Officer Departments
+const OfficerDepartmentsList = lazy(() => import('../pages/admin/OfficerDepartments/OfficerDepartmentsList'));
+const AddOfficerDepartment = lazy(() => import('../pages/admin/OfficerDepartments/AddOfficerDepartment'));
+const EditOfficerDepartment = lazy(() => import('../pages/admin/OfficerDepartments/EditOfficerDepartment'));
+
+// Officers
+const OfficersList = lazy(() => import('../pages/admin/Officers/OfficersList'));
+const AddOfficer = lazy(() => import('../pages/admin/Officers/AddOfficer'));
+const EditOfficer = lazy(() => import('../pages/admin/Officers/EditOfficer'));
+
+// Candidates
+const CandidatesList = lazy(() => import('../pages/admin/Candidates/CandidatesList'));
+const AddCandidate = lazy(() => import('../pages/admin/Candidates/AddCandidate'));
+const EditCandidate = lazy(() => import('../pages/admin/Candidates/EditCandidate'));
+
+// MNA/MPA Posting Recommendation
+const MNAMPAPostingRecommendation = lazy(() => import('../pages/admin/Reports/MNAMPAPostingRecommendation'));
+
+// Khushhal Khyber Pakhtunkhwa
+const KhushhalKPKList = lazy(() => import('../pages/admin/KhushhalKPK/KhushhalKPKList'));
+const AddKhushhalKPK = lazy(() => import('../pages/admin/KhushhalKPK/AddKhushhalKPK'));
+const EditKhushhalKPK = lazy(() => import('../pages/admin/KhushhalKPK/EditKhushhalKPK'));
+const ShowKhushhalKPK = lazy(() => import('../pages/admin/KhushhalKPK/ShowKhushhalKPK'));
+
 // Inaugurations
 const InaugurationsList = lazy(() => import('../pages/admin/Inaugurations/InaugurationsList'));
 const AddInauguration = lazy(() => import('../pages/admin/Inaugurations/AddInauguration'));
@@ -484,6 +518,100 @@ export const router = createBrowserRouter([
       {
         path: 'candidate/distributed-fund/report',
         element: withSuspense(CandidateDistributedFundReport),
+      },
+      
+      // Review Meetings
+      {
+        path: 'reviewmeetings',
+        element: withSuspense(ReviewMeetingsList),
+      },
+      {
+        path: 'reviewmeetings/add',
+        element: withSuspense(AddReviewMeeting),
+      },
+      {
+        path: 'reviewmeetings/edit/:id',
+        element: withSuspense(EditReviewMeeting),
+      },
+      
+      // Candidate Requests (MNA/MPA Requests)
+      {
+        path: 'candidaterequests',
+        element: withSuspense(CandidateRequestsList),
+      },
+      {
+        path: 'candidaterequests/add',
+        element: withSuspense(AddCandidateRequest),
+      },
+      {
+        path: 'candidaterequests/edit/:id',
+        element: withSuspense(EditCandidateRequest),
+      },
+      
+      // Officer Departments
+      {
+        path: 'officerdepartments',
+        element: withSuspense(OfficerDepartmentsList),
+      },
+      {
+        path: 'officerdepartments/add',
+        element: withSuspense(AddOfficerDepartment),
+      },
+      {
+        path: 'officerdepartments/edit/:id',
+        element: withSuspense(EditOfficerDepartment),
+      },
+      
+      // Officers
+      {
+        path: 'officers',
+        element: withSuspense(OfficersList),
+      },
+      {
+        path: 'officers/add',
+        element: withSuspense(AddOfficer),
+      },
+      {
+        path: 'officers/edit/:id',
+        element: withSuspense(EditOfficer),
+      },
+      
+      // Candidates
+      {
+        path: 'candidates',
+        element: withSuspense(CandidatesList),
+      },
+      {
+        path: 'candidates/add',
+        element: withSuspense(AddCandidate),
+      },
+      {
+        path: 'candidates/edit/:id',
+        element: withSuspense(EditCandidate),
+      },
+      
+      // MNA/MPA Posting Recommendation
+      {
+        path: 'mna-mpa/posting/recommendation',
+        element: withSuspense(MNAMPAPostingRecommendation),
+      },
+      
+      // Khushhal Khyber Pakhtunkhwa
+      {
+        path: 'khushhalkpk',
+        element: withSuspense(KhushhalKPKList),
+      },
+      {
+        path: 'khushhalkpk/add',
+        element: withSuspense(AddKhushhalKPK),
+      },
+      {
+        path: 'khushhalkpk/edit/:id',
+        element: withSuspense(EditKhushhalKPK),
+      },
+      {
+        path: 'khushhalkpk/show/:id',
+        element: withSuspense(ShowKhushhalKPK),
       },
       
       // PTIs KP Module
