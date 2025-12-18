@@ -34,6 +34,10 @@ export default function KhushhalKPKList() {
             text-align: center !important;
             height: 35px;
           }
+          #directive-listing td {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+          }
         `}
       </style>
       <div className="card">
@@ -103,15 +107,19 @@ export default function KhushhalKPKList() {
                               <div dangerouslySetInnerHTML={{ __html: task.expected_outcomes || '' }} />
                             </td>
                             <td style={{ width: '85px' }}>
-                              {departments.map((dept, idx) => (
-                                <div key={dept.id}>
-                                  {dept.name}
-                                  <label className="badge badge-info badge-pill">
-                                    {khushhalStatuses['2'] || 'Nill'}
-                                  </label>
-                                  {idx < departments.length - 1 && <br />}
-                                </div>
-                              ))}
+                              {departments.length > 0 ? (
+                                departments.map((dept, idx) => (
+                                  <div key={dept.id}>
+                                    {dept.name}
+                                    <label style={{ width: '85px' }} className="badge badge-info badge-pill">
+                                      {khushhalStatuses[task.status || '2'] || 'Nill'}
+                                    </label>
+                                    {idx < departments.length - 1 && <br />}
+                                  </div>
+                                ))
+                              ) : (
+                                <>&nbsp;</>
+                              )}
                             </td>
                             <td style={{ width: '100px' }}>
                               <Link
@@ -122,13 +130,14 @@ export default function KhushhalKPKList() {
                               >
                                 <i className="ti-pencil-alt icon-sm"></i>
                               </Link>
+                              &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;
                               <form
                                 action="#"
                                 method="post"
                                 style={{ float: 'left', marginLeft: '10px' }}
                                 onSubmit={(e) => {
                                   e.preventDefault();
-                                  if (confirm('Are you sure to delete? This action can not be undone.')) {
+                                  if (confirm('Are you sure to delete?This action can not be undone.')) {
                                     console.log('Delete Khushhal KPK task:', task.id);
                                     alert('Delete functionality will be implemented with backend API');
                                   }
@@ -144,9 +153,10 @@ export default function KhushhalKPKList() {
                               </form>
                               <Link
                                 to={`/admin/khushhalkpk/show/${task.id}`}
-                                style={{ padding: '0.3rem 1rem', margin: '5px', display: 'block' }}
+                                style={{ padding: '0.3rem 1rem', margin: '5px', clear: 'both', display: 'block' }}
                                 className="btn btn-primary btn-sm active"
                                 role="button"
+                                aria-pressed="true"
                               >
                                 Add Weekly/Monthly progress
                               </Link>
@@ -155,6 +165,7 @@ export default function KhushhalKPKList() {
                                 style={{ padding: '0.3rem 1rem', margin: '5px', display: 'block' }}
                                 className="btn btn-warning btn-sm active"
                                 role="button"
+                                aria-pressed="true"
                               >
                                 Departments Replies
                               </Link>

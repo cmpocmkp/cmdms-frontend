@@ -15,6 +15,7 @@ export interface KhushhalKPKTask {
   expected_outcomes?: string;
   departments: number[];
   attachments?: string[];
+  status?: string;
   created_at: string;
   updated_at: string;
 }
@@ -46,6 +47,7 @@ export const mockKhushhalKPKTasks: KhushhalKPKTask[] = Array.from({ length: 50 }
     attachments: faker.helpers.maybe(() => Array.from({ length: faker.number.int({ min: 0, max: 2 }) }, () => 
       faker.system.fileName({ extensionCount: 1 })
     ), { probability: 0.4 }),
+    status: faker.helpers.arrayElement(Object.keys(khushhalStatuses)),
     created_at: faker.date.past().toISOString(),
     updated_at: faker.date.recent().toISOString()
   };
