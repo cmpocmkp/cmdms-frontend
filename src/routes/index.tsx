@@ -189,6 +189,7 @@ const ShowPTI = lazy(() => import('../pages/admin/PTIs/ShowPTI'));
 
 // Tasks
 const TaskComments = lazy(() => import('../pages/admin/Tasks/TaskComments'));
+const TaskShow = lazy(() => import('../pages/admin/Tasks/TaskShow'));
 
 // Summaries
 const SummariesList = lazy(() => import('../pages/admin/Summaries/SummariesList'));
@@ -672,7 +673,11 @@ export const router = createBrowserRouter([
         element: withSuspense(EditPTI),
       },
       
-      // Tasks Module (Comments/Chat)
+      // Tasks Module
+      {
+        path: 'tasks/:taskId',
+        element: withSuspense(TaskShow),
+      },
       {
         path: 'tasks/:taskId/comments',
         element: withSuspense(TaskComments),
