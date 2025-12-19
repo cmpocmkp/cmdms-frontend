@@ -670,7 +670,7 @@ export function Sidebar() {
                   )}
                   
                   {/* Filter Record Notes */}
-                  {hasPermission('admin.admin.report.filter.recordnotes') && (
+                  {hasPermission('admin.report.filter.recordnotes') && (
                     <li className={cn("nav-item", isActive('/admin/report/filter-recordnotes') && 'active')}>
                       <Link className="nav-link" to="/admin/report/filter-recordnotes">Filter Record Notes</Link>
                     </li>

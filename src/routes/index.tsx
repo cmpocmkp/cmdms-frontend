@@ -36,6 +36,7 @@ const LogViewerPage = lazy(() => import('../pages/admin/LogViewer/LogViewerPage'
 const MinutesList = lazy(() => import('../pages/admin/Minutes/MinutesList'));
 const AddMinute = lazy(() => import('../pages/admin/Minutes/AddMinute'));
 const EditMinute = lazy(() => import('../pages/admin/Minutes/EditMinute'));
+const MinuteReplies = lazy(() => import('../pages/admin/Minutes/MinuteReplies'));
 
 // Directives
 const DirectivesList = lazy(() => import('../pages/admin/Directives/DirectivesList'));
@@ -133,6 +134,36 @@ const EditCandidate = lazy(() => import('../pages/admin/Candidates/EditCandidate
 
 // MNA/MPA Posting Recommendation
 const MNAMPAPostingRecommendation = lazy(() => import('../pages/admin/Reports/MNAMPAPostingRecommendation'));
+
+// Reports
+const CabinetMeetingsReport = lazy(() => import('../pages/admin/Reports/CabinetMeetingsReport'));
+const CabinetByStatusReport = lazy(() => import('../pages/admin/Reports/CabinetByStatusReport'));
+const CabinetDetailReport = lazy(() => import('../pages/admin/Reports/CabinetDetailReport'));
+const CabinetDepartmentWiseReport = lazy(() => import('../pages/admin/Reports/CabinetDepartmentWiseReport'));
+const RecordNotesDetailList = lazy(() => import('../pages/admin/Reports/RecordNotesDetailList'));
+const BoardMeetingsReport = lazy(() => import('../pages/admin/Reports/BoardMeetingsReport'));
+const BoardActsReport = lazy(() => import('../pages/admin/Reports/BoardActsReport'));
+const SummariesForCMReport = lazy(() => import('../pages/admin/Reports/SummariesForCMReport'));
+const SummariesForCMDetailReport = lazy(() => import('../pages/admin/Reports/SummariesForCMDetailReport'));
+const InaugurationsReport = lazy(() => import('../pages/admin/Reports/InaugurationsReport'));
+const ReviewMeetingsReport = lazy(() => import('../pages/admin/Reports/ReviewMeetingsReport'));
+const ReviewMeetingsDSWiseReport = lazy(() => import('../pages/admin/Reports/ReviewMeetingsDSWiseReport'));
+const KhushhaalKPKTasksReport = lazy(() => import('../pages/admin/Reports/KhushhaalKPKTasksReport'));
+const KPIDataReports = lazy(() => import('../pages/admin/Reports/KPIDataReports'));
+const DCKPIsDataFilter = lazy(() => import('../pages/admin/Reports/DCKPIsDataFilter'));
+const DPOsKPIsDataFilter = lazy(() => import('../pages/admin/Reports/DPOsKPIsDataFilter'));
+const DepartmentsKPIsDataFilter = lazy(() => import('../pages/admin/Reports/DepartmentsKPIsDataFilter'));
+const DCInspectionDetailsReport = lazy(() => import('../pages/admin/Reports/DCInspectionDetailsReport'));
+const PMRUMetingsReport = lazy(() => import('../pages/admin/Reports/PMRUMetingsReport'));
+const FilterRecordNotesReport = lazy(() => import('../pages/admin/Reports/FilterRecordNotesReport'));
+const PTFDashboardReport = lazy(() => import('../pages/admin/Reports/PTFDashboardReport'));
+const PTFMeetingsReport = lazy(() => import('../pages/admin/Reports/PTFMeetingsReport'));
+const PTFDepartmentWiseReport = lazy(() => import('../pages/admin/Reports/PTFDepartmentWiseReport'));
+const PTFDistrictWiseReport = lazy(() => import('../pages/admin/Reports/PTFDistrictWiseReport'));
+const PTFDistrictDetailReport = lazy(() => import('../pages/admin/Reports/PTFDistrictDetailReport'));
+const PTFDistrictLatestReport = lazy(() => import('../pages/admin/Reports/PTFDistrictLatestReport'));
+const RecordnotesUpdatesReport = lazy(() => import('../pages/admin/Reports/RecordnotesUpdatesReport'));
+const RecordnotesComparisionReport = lazy(() => import('../pages/admin/Reports/RecordnotesComparisionReport'));
 
 // Khushhal Khyber Pakhtunkhwa
 const KhushhalKPKList = lazy(() => import('../pages/admin/KhushhalKPK/KhushhalKPKList'));
@@ -294,6 +325,10 @@ export const router = createBrowserRouter([
       {
         path: 'recordnotes/edit/:id',
         element: withSuspense(EditMinute),
+      },
+      {
+        path: 'replies/minutes/:id',
+        element: withSuspense(MinuteReplies),
       },
       
       // Directives Module
@@ -664,6 +699,120 @@ export const router = createBrowserRouter([
       {
         path: 'trackers/edit/:id',
         element: withSuspense(TrackersList), // TODO: Create EditTracker component
+      },
+      
+      // Reports Routes
+      {
+        path: 'report/cabinet-meetings',
+        element: withSuspense(CabinetMeetingsReport),
+      },
+      {
+        path: 'report/cabinet-meetings/by-status',
+        element: withSuspense(CabinetByStatusReport),
+      },
+      {
+        path: 'report/cabinet-meetings/detail/:deptid/:stat',
+        element: withSuspense(CabinetDetailReport),
+      },
+      {
+        path: 'report/recordnotes/detail_list/:meeting/:minute',
+        element: withSuspense(RecordNotesDetailList),
+      },
+      {
+        path: 'report/department-wise/cabinet-meeting/decisions',
+        element: withSuspense(CabinetDepartmentWiseReport),
+      },
+      {
+        path: 'report/board/meetings',
+        element: withSuspense(BoardMeetingsReport),
+      },
+      {
+        path: 'report/board/acts',
+        element: withSuspense(BoardActsReport),
+      },
+      {
+        path: 'report/summaries/summary',
+        element: withSuspense(SummariesForCMReport),
+      },
+      {
+        path: 'report/summaries/detail',
+        element: withSuspense(SummariesForCMDetailReport),
+      },
+      {
+        path: 'report/inaugurations',
+        element: withSuspense(InaugurationsReport),
+      },
+      {
+        path: 'report/review-meetings',
+        element: withSuspense(ReviewMeetingsReport),
+      },
+      {
+        path: 'report/ds-wise-review-meetings',
+        element: withSuspense(ReviewMeetingsDSWiseReport),
+      },
+      {
+        path: 'report/khushhalkpk-tasks',
+        element: withSuspense(KhushhaalKPKTasksReport),
+      },
+      {
+        path: 'kpidata',
+        element: withSuspense(KPIDataReports),
+      },
+      {
+        path: 'kpidata/show',
+        element: withSuspense(DCKPIsDataFilter),
+      },
+      {
+        path: 'kpidata/dpos',
+        element: withSuspense(DPOsKPIsDataFilter),
+      },
+      {
+        path: 'kpidata/departments',
+        element: withSuspense(DepartmentsKPIsDataFilter),
+      },
+      {
+        path: 'report/dc-inspection',
+        element: withSuspense(DCInspectionDetailsReport),
+      },
+      {
+        path: 'report/pmru-meetings',
+        element: withSuspense(PMRUMetingsReport),
+      },
+      {
+        path: 'report/filter-recordnotes',
+        element: withSuspense(FilterRecordNotesReport),
+      },
+      {
+        path: 'report/ptf/index',
+        element: withSuspense(PTFDashboardReport),
+      },
+      {
+        path: 'report/ptf/meetings',
+        element: withSuspense(PTFMeetingsReport),
+      },
+      {
+        path: 'report/ptf/department-wise',
+        element: withSuspense(PTFDepartmentWiseReport),
+      },
+      {
+        path: 'report/ptf/district-wise',
+        element: withSuspense(PTFDistrictWiseReport),
+      },
+      {
+        path: 'ptfs/report-district-detail',
+        element: withSuspense(PTFDistrictDetailReport),
+      },
+      {
+        path: 'ptfs/report-district-latest',
+        element: withSuspense(PTFDistrictLatestReport),
+      },
+      {
+        path: 'report/recordnotes-updates',
+        element: withSuspense(RecordnotesUpdatesReport),
+      },
+      {
+        path: 'report/recordnotes-comparision',
+        element: withSuspense(RecordnotesComparisionReport),
       },
     ],
   },
