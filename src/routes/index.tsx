@@ -142,7 +142,12 @@ const CabinetDetailReport = lazy(() => import('../pages/admin/Reports/CabinetDet
 const CabinetDepartmentWiseReport = lazy(() => import('../pages/admin/Reports/CabinetDepartmentWiseReport'));
 const RecordNotesDetailList = lazy(() => import('../pages/admin/Reports/RecordNotesDetailList'));
 const BoardMeetingsReport = lazy(() => import('../pages/admin/Reports/BoardMeetingsReport'));
+const BoardMeetingDetailReport = lazy(() => import('../pages/admin/Reports/BoardMeetingDetailReport'));
+const BoardMeetingFilterReport = lazy(() => import('../pages/admin/Reports/BoardMeetingFilterReport'));
+const BoardMeetingsUpcomingReport = lazy(() => import('../pages/admin/Reports/BoardMeetingsUpcomingReport'));
 const BoardActsReport = lazy(() => import('../pages/admin/Reports/BoardActsReport'));
+const BoardActsShowReport = lazy(() => import('../pages/admin/Reports/BoardActsShowReport'));
+const BoardActsUpcomingReport = lazy(() => import('../pages/admin/Reports/BoardActsUpcomingReport'));
 const SummariesForCMReport = lazy(() => import('../pages/admin/Reports/SummariesForCMReport'));
 const SummariesForCMDetailReport = lazy(() => import('../pages/admin/Reports/SummariesForCMDetailReport'));
 const InaugurationsReport = lazy(() => import('../pages/admin/Reports/InaugurationsReport'));
@@ -727,8 +732,28 @@ export const router = createBrowserRouter([
         element: withSuspense(BoardMeetingsReport),
       },
       {
+        path: 'report/board/meetings/detail/:department_id/:decision_status',
+        element: withSuspense(BoardMeetingDetailReport),
+      },
+      {
+        path: 'report/search/board/meetings',
+        element: withSuspense(BoardMeetingFilterReport),
+      },
+      {
+        path: 'report/board/meetings/upcoming',
+        element: withSuspense(BoardMeetingsUpcomingReport),
+      },
+      {
         path: 'report/board/acts',
         element: withSuspense(BoardActsReport),
+      },
+      {
+        path: 'report/board/acts/show/:id',
+        element: withSuspense(BoardActsShowReport),
+      },
+      {
+        path: 'report/board/acts/upcoming',
+        element: withSuspense(BoardActsUpcomingReport),
       },
       {
         path: 'report/summaries/summary',
