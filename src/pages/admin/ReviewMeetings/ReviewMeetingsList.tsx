@@ -47,13 +47,13 @@ export default function ReviewMeetingsList() {
                   </thead>
                   <tbody>
                     {mockReviewMeetings.length > 0 ? (
-                      mockReviewMeetings.map((reviewMeeting) => {
+                      mockReviewMeetings.map((reviewMeeting, index) => {
                         const departments = mockAdminDepartments.filter(d => 
                           reviewMeeting.departments.includes(d.id)
                         );
                         return (
                           <tr key={reviewMeeting.id}>
-                            <td>{reviewMeeting.id}</td>
+                            <td>{index + 1}</td>
                             <td>
                               Created at: <span className="text-muted">{formatDate(reviewMeeting.created_at)}</span> <br/><br/>
                               Created by: <span className="text-muted">{reviewMeeting.creator_name || 'N/A'}</span> <br/><br/>
@@ -73,15 +73,13 @@ export default function ReviewMeetingsList() {
                               {departments.length > 0 && (
                                 <>
                                   ({departments.length})
-                                  <br />
                                 </>
                               )}
-                              {departments.map((dept, idx) => (
-                                <span key={dept.id}>
-                                  {dept.name}
-                                  {idx < departments.length - 1 && <br />}
-                                </span>
-                              ))}
+                              <ul style={{ margin: 0, paddingLeft: '20px', listStyle: 'disc' }}>
+                                {departments.map((dept) => (
+                                  <li key={dept.id}>{dept.name}</li>
+                                ))}
+                              </ul>
                             </td>
                             <td>
                               <div dangerouslySetInnerHTML={{ __html: reviewMeeting.participants }} />
