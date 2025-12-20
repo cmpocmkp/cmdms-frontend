@@ -549,6 +549,18 @@ export function Sidebar() {
                     </li>
                   )}
                   
+                  {/* CM Initiatives Tracker */}
+                  <li className="nav-item">
+                    <a 
+                      className="nav-link"
+                      href="https://docs.google.com/presentation/d/1IasOhWNW9JjefGabLRDG8WEWqdYmuEO5wr4CbM1NeTI/edit?usp=sharing"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <span className="menu-title">CM Initiatives Tracker</span>
+                    </a>
+                  </li>
+                  
                   {/* Summaries for CM Submenu */}
                   {(hasPermission('admin.report.summaries.summary') || hasPermission('admin.report.summaries.detail')) && (
                     <li className={cn("nav-item", isActive('/admin/report/summaries') && 'active')}>
@@ -767,18 +779,6 @@ export function Sidebar() {
           {/* External Links - OUTSIDE Reports section */}
           {(isAdminOrDataEntry() || user?.role_id === 3) && (
             <>
-              {/* CM Initiatives Tracker */}
-              <li className="nav-item">
-                <a 
-                  className="nav-link"
-                  href="https://docs.google.com/presentation/d/1IasOhWNW9JjefGabLRDG8WEWqdYmuEO5wr4CbM1NeTI/edit?usp=sharing"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <span className="menu-title">CM Initiatives Tracker</span>
-                </a>
-              </li>
-              
               {/* Good Governance Roadmap */}
               {hasPermission('admin.good.governance.roadmap.link') && (
                 <li className="nav-item">

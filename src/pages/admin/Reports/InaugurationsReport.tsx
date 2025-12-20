@@ -1,37 +1,176 @@
 /**
- * Inaugurations Report
- * EXACT replica of admin/report/inaugurations/index.blade.php
+ * Inaugurations Report - Department-wise
+ * EXACT replica of admin/report/inaugurations/index.blade.php from old CMDMS
  */
 
-import { useState, useEffect } from 'react';
-import { api } from '../../../lib/api';
+import React, { useState, useEffect } from 'react';
+import { mockInaugurations } from '../../../lib/mocks/data/inaugurations';
+import { mockDepartments } from '../../../lib/mocks/data/departments';
+
+interface DepartmentInauguration {
+  id: number;
+  name: string;
+  inaugurationsBreaking: InaugurationItem[];
+}
+
+interface InaugurationItem {
+  id: number;
+  project_name: string;
+  scheme?: string;
+  cost: number;
+  description: string;
+  district_id: number;
+  district_name: string;
+  division_id: string;
+  division_name: string;
+  date: string;
+  remarks?: string;
+  attachments?: string[];
+}
+
+// Format date as 'jS F' (e.g., "28th July")
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  const day = date.getDate();
+  const month = date.toLocaleDateString('en-GB', { month: 'long' });
+  
+  const getOrdinalSuffix = (n: number): string => {
+    const s = ['th', 'st', 'nd', 'rd'];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
+  
+  return `${getOrdinalSuffix(day)} ${month}`;
+};
+
+// Get month name from date
+const getMonth = (dateString: string): string => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-GB', { month: 'long' });
+};
+
+// Get year from date
+const getYear = (dateString: string): string => {
+  const date = new Date(dateString);
+  return date.getFullYear().toString();
+};
 
 export default function InaugurationsReport() {
-  const [loading, setLoading] = useState(true);
-  const [departmentInaugurations, setDepartmentInaugurations] = useState<any[]>([]);
+  const [departmentInaugurations, setDepartmentInaugurations] = useState<DepartmentInauguration[]>([]);
 
   useEffect(() => {
-    // TODO: Replace with actual API call
-    // const fetchData = async () => {
-    //   try {
-    //     const response = await api.get('/admin/report/inaugurations');
-    //     setDepartmentInaugurations(response.data);
-    //   } catch (error) {
-    //     console.error('Error fetching inaugurations:', error);
-    //   } finally {
-    //     setLoading(false);
-    //   }
-    // };
-    // fetchData();
-    setLoading(false);
+    // Group inaugurations by department
+    const grouped: Record<number, DepartmentInauguration> = {};
+    
+    // Filter departments (exclude 44, 45, 46)
+    const availableDepartments = mockDepartments.filter(dept => ![44, 45, 46].includes(dept.id));
+    
+    // Initialize departments
+    availableDepartments.slice(0, 10).forEach(dept => {
+      grouped[dept.id] = {
+        id: dept.id,
+        name: dept.name,
+        inaugurationsBreaking: []
+      };
+    });
+    
+    // Assign inaugurations to departments
+    mockInaugurations.slice(0, 30).forEach((inaug, index) => {
+      const deptId = inaug.department_id;
+      if (grouped[deptId]) {
+        grouped[deptId].inaugurationsBreaking.push({
+          id: inaug.id,
+          project_name: inaug.project_name,
+          scheme: inaug.scheme,
+          cost: inaug.cost,
+          description: inaug.description,
+          district_id: inaug.district_id,
+          district_name: inaug.district_name,
+          division_id: inaug.division_id,
+          division_name: inaug.division_name,
+          date: inaug.date,
+          remarks: inaug.remarks,
+          attachments: inaug.attachments
+        });
+      }
+    });
+    
+    // Convert to array and filter out departments with no inaugurations
+    const result = Object.values(grouped).filter(dept => dept.inaugurationsBreaking.length > 0);
+    setDepartmentInaugurations(result);
   }, []);
-
-  if (loading) {
-    return <div className="text-center p-5">Loading...</div>;
-  }
 
   return (
     <div className="content-wrapper">
+      <style>
+        {`
+          table#inaugurations-listing td p {
+            width: 100px !important;
+          }
+          table#inaugurations-listing td {
+            width: 100px !important;
+            border: 1px solid silver;
+          }
+          table#inaugurations-listing th {
+            padding: 10px !important;
+            border: 1px solid silver;
+          }
+          .modal .modal-dialog {
+            margin-top: 70px !important;
+          }
+          table.dataTable tbody td {
+            padding-left: 2px !important;
+          }
+          /* Bootstrap table classes - matching old CMDMS */
+          .table-primary,
+          .table-primary > th,
+          .table-primary > td {
+            background-color: #cfe2ff !important;
+          }
+          .table-info,
+          .table-info > th,
+          .table-info > td {
+            background-color: #d1ecf1 !important;
+          }
+          /* Badge styling - matching Bootstrap exactly */
+          .badge-warning {
+            background-color: #ffc107 !important;
+            color: #000 !important;
+            padding: 0.25em 0.6em;
+            border-radius: 0.25rem;
+            font-weight: 500;
+            display: inline-block;
+          }
+          .badge-danger {
+            background-color: #dc3545 !important;
+            color: #fff !important;
+            padding: 0.25em 0.6em;
+            border-radius: 50rem;
+            font-weight: 500;
+            display: inline-block;
+          }
+          .badge-pill {
+            border-radius: 50rem;
+          }
+          mark.bg-warning {
+            background-color: #ffc107 !important;
+            color: #fff !important;
+            padding: 0.25em 0.5em;
+            border-radius: 0.25rem;
+            display: inline-block;
+          }
+          /* Ensure table cells have proper borders */
+          table#inaugurations-listing tbody td,
+          table#inaugurations-listing tbody th {
+            border: 1px solid silver;
+          }
+          /* Match old CMDMS table styling */
+          table#inaugurations-listing.table-striped tbody tr.table-primary,
+          table#inaugurations-listing.table-striped tbody tr.table-info {
+            border: 1px solid silver;
+          }
+        `}
+      </style>
       <div className="card">
         <div className="card-body">
           <center>
@@ -60,52 +199,97 @@ export default function InaugurationsReport() {
                   <tbody>
                     {departmentInaugurations.length === 0 ? (
                       <tr>
-                        <td colSpan={10} className="text-center">No data available</td>
+                        <td colSpan={10}>There are no data.</td>
                       </tr>
                     ) : (
-                      departmentInaugurations.map((department, deptIndex) => (
-                        department.inaugrationsBreaking && department.inaugrationsBreaking.length > 0 ? (
-                          department.inaugrationsBreaking.map((inaug: any, inaugIndex: number) => (
-                            <tr 
-                              key={`${deptIndex}-${inaugIndex}`}
-                              className={deptIndex % 2 === 0 ? 'table-primary' : 'table-info'}
-                            >
-                              {inaugIndex === 0 && (
-                                <>
-                                  <th 
-                                    style={{ verticalAlign: 'top' }}
-                                    rowSpan={department.inaugrationsBreaking.length + 1}
-                                  >
-                                    {deptIndex + 1}
-                                  </th>
-                                  <th 
-                                    style={{ verticalAlign: 'top', color: 'var(--gray-dark)' }}
-                                    rowSpan={department.inaugrationsBreaking.length + 1}
-                                  >
-                                    <mark className="bg-warning text-white">{department.name}</mark>
-                                  </th>
-                                </>
-                              )}
-                              <td>{inaug.month}</td>
-                              <td>{inaug.scheme_project_name}</td>
-                              <td>{inaug.cost_in_millions}</td>
-                              <td>{inaug.inauguration_groundbreaking}</td>
-                              <td>{inaug.district}</td>
-                              <td>{inaug.division}</td>
-                              <td>{inaug.expected_date}</td>
-                              <td>{inaug.remarks}</td>
+                      departmentInaugurations.map((department, deptIndex) => {
+                        const rowClass = (deptIndex + 1) % 2 === 0 ? 'table-info' : 'table-primary';
+                        const rowspan = department.inaugurationsBreaking.length + 1;
+                        
+                        return (
+                          <React.Fragment key={department.id}>
+                            {/* First row with S# and Department (rowspan) */}
+                            <tr className={rowClass}>
+                              <th 
+                                style={{ verticalAlign: 'top' }}
+                                rowSpan={rowspan}
+                              >
+                                {deptIndex + 1}
+                              </th>
+                              <th 
+                                style={{ verticalAlign: 'top', color: 'var(--gray-dark)' }}
+                                rowSpan={rowspan}
+                              >
+                                <mark className="bg-warning text-white">{department.name}</mark>
+                              </th>
                             </tr>
-                          ))
-                        ) : (
-                          <tr key={deptIndex} className={deptIndex % 2 === 0 ? 'table-primary' : 'table-info'}>
-                            <th style={{ verticalAlign: 'top' }}>{deptIndex + 1}</th>
-                            <th style={{ verticalAlign: 'top', color: 'var(--gray-dark)' }}>
-                              <mark className="bg-warning text-white">{department.name}</mark>
-                            </th>
-                            <td colSpan={8} className="text-center">No inaugurations</td>
-                          </tr>
-                        )
-                      ))
+                            {/* Subsequent rows for each inauguration */}
+                            {department.inaugurationsBreaking.map((inaug, inaugIndex) => (
+                              <tr key={inaug.id} className={rowClass}>
+                                <td style={{ width: '100px' }}>
+                                  {getMonth(inaug.date)}
+                                </td>
+                                <td style={{ width: '100px' }}>
+                                  <div dangerouslySetInnerHTML={{ __html: inaug.project_name || '' }} />
+                                  <br />
+                                  {inaug.scheme && (
+                                    <>
+                                      <div dangerouslySetInnerHTML={{ __html: inaug.scheme }} />
+                                      <br />
+                                    </>
+                                  )}
+                                  {inaug.attachments && inaug.attachments.length > 0 && (
+                                    <>
+                                      {inaug.attachments.map((file, idx) => (
+                                        <span key={idx}>
+                                          <a
+                                            href="#"
+                                            title="click to download attach file"
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              console.log('Download attachment:', file);
+                                            }}
+                                          >
+                                            Attachment:<i className="ti-file"></i>
+                                          </a>
+                                        </span>
+                                      ))}
+                                    </>
+                                  )}
+                                </td>
+                                <td style={{ width: '100px', color: 'red' }}>
+                                  <div 
+                                    style={{ width: '100px', fontWeight: 500, fontSize: '16px' }}
+                                    className="badge badge-danger badge-pill"
+                                  >
+                                    {inaug.cost ?? ''}
+                                  </div>
+                                </td>
+                                <td style={{ width: '100px' }}>
+                                  <div dangerouslySetInnerHTML={{ __html: inaug.description ?? '' }} />
+                                </td>
+                                <td style={{ width: '100px' }}>
+                                  {inaug.district_name}
+                                </td>
+                                <td style={{ width: '100px' }}>
+                                  {inaug.division_name}
+                                </td>
+                                <td style={{ width: '100px', color: 'darkblue', fontWeight: 500 }}>
+                                  <label
+                                    style={{ fontWeight: 500, fontSize: '16px' }}
+                                    className="badge badge-warning"
+                                  >
+                                    {formatDate(inaug.date)}<br />{getYear(inaug.date)}
+                                  </label>
+                                </td>
+                                <td style={{ width: '100px' }}>
+                                  <div dangerouslySetInnerHTML={{ __html: inaug.remarks ?? '' }} />
+                                </td>
+                              </tr>
+                            ))}
+                          </React.Fragment>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>

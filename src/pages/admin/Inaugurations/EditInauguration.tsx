@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { mockInaugurations } from '../../../lib/mocks/data/inaugurations';
+import { mockInaugurations, inaugurationMockDistricts } from '../../../lib/mocks/data/inaugurations';
 import { mockDepartments } from '../../../lib/mocks/data/departments';
 
 // Inauguration types from old CMDMS model
@@ -50,9 +50,10 @@ export default function EditInauguration() {
       setProjectName(inauguration.project_name);
       setCost(inauguration.cost);
       setDate(inauguration.date);
+      setType(inauguration.type || '');
       setDepartmentId(inauguration.department_id.toString());
       setDistrictId(inauguration.district_id.toString());
-      setDivisionId(inauguration.division_id.toString());
+      setDivisionId(inauguration.division_id);
       setDescription(inauguration.description);
       setRemarks(inauguration.remarks || '');
     }
@@ -213,7 +214,11 @@ export default function EditInauguration() {
                         value={districtId}
                         onChange={(e) => setDistrictId(e.target.value)}
                       >
-                        {/* Districts would come from mock data - using inaugurationMockDistricts */}
+                        {inaugurationMockDistricts.map((district) => (
+                          <option key={district.id} value={district.id}>
+                            {district.name}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
