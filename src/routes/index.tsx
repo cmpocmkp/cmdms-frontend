@@ -175,6 +175,8 @@ const KhushhalKPKList = lazy(() => import('../pages/admin/KhushhalKPK/KhushhalKP
 const AddKhushhalKPK = lazy(() => import('../pages/admin/KhushhalKPK/AddKhushhalKPK'));
 const EditKhushhalKPK = lazy(() => import('../pages/admin/KhushhalKPK/EditKhushhalKPK'));
 const ShowKhushhalKPK = lazy(() => import('../pages/admin/KhushhalKPK/ShowKhushhalKPK'));
+const KhushhalKPKReplies = lazy(() => import('../pages/admin/Replies/KhushhalKPKReplies'));
+const EditKhushhalProgress = lazy(() => import('../pages/admin/KhushhalProgress/EditKhushhalProgress'));
 
 // Inaugurations
 const InaugurationsList = lazy(() => import('../pages/admin/Inaugurations/InaugurationsList'));
@@ -653,6 +655,14 @@ export const router = createBrowserRouter([
       {
         path: 'khushhalkpk/show/:id',
         element: withSuspense(ShowKhushhalKPK),
+      },
+      {
+        path: 'replies/khushhalkpk/:id',
+        element: withSuspense(KhushhalKPKReplies),
+      },
+      {
+        path: 'khushhalprogress/edit/:id',
+        element: withSuspense(EditKhushhalProgress),
       },
       
       // PTIs KP Module
