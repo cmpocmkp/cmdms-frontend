@@ -162,12 +162,15 @@ const DCInspectionDetailsReport = lazy(() => import('../pages/admin/Reports/DCIn
 const PMRUMetingsReport = lazy(() => import('../pages/admin/Reports/PMRUMetingsReport'));
 const PMRUSubtasksDetail = lazy(() => import('../pages/admin/Reports/PMRUSubtasksDetail'));
 const FilterRecordNotesReport = lazy(() => import('../pages/admin/Reports/FilterRecordNotesReport'));
+const PDFDashboard = lazy(() => import('../pages/admin/PDF/PDFDashboard'));
 const PTFDashboardReport = lazy(() => import('../pages/admin/Reports/PTFDashboardReport'));
 const PTFMeetingsReport = lazy(() => import('../pages/admin/Reports/PTFMeetingsReport'));
 const PTFDepartmentWiseReport = lazy(() => import('../pages/admin/Reports/PTFDepartmentWiseReport'));
 const PTFDistrictWiseReport = lazy(() => import('../pages/admin/Reports/PTFDistrictWiseReport'));
 const PTFDistrictDetailReport = lazy(() => import('../pages/admin/Reports/PTFDistrictDetailReport'));
 const PTFDistrictLatestReport = lazy(() => import('../pages/admin/Reports/PTFDistrictLatestReport'));
+const PTFIssueList = lazy(() => import('../pages/admin/PTF/PTFIssueList'));
+const PTFIssueDetail = lazy(() => import('../pages/admin/PTF/PTFIssueDetail'));
 const RecordnotesUpdatesReport = lazy(() => import('../pages/admin/Reports/RecordnotesUpdatesReport'));
 const RecordnotesComparisionReport = lazy(() => import('../pages/admin/Reports/RecordnotesComparisionReport'));
 
@@ -828,6 +831,10 @@ export const router = createBrowserRouter([
         element: withSuspense(FilterRecordNotesReport),
       },
       {
+        path: 'pdf/dashboard',
+        element: withSuspense(PDFDashboard),
+      },
+      {
         path: 'report/ptf/index',
         element: withSuspense(PTFDashboardReport),
       },
@@ -850,6 +857,14 @@ export const router = createBrowserRouter([
       {
         path: 'ptfs/report-district-latest',
         element: withSuspense(PTFDistrictLatestReport),
+      },
+      {
+        path: 'ptf/list-issue-all',
+        element: withSuspense(PTFIssueList),
+      },
+      {
+        path: 'ptf/details/:id',
+        element: withSuspense(PTFIssueDetail),
       },
       {
         path: 'report/recordnotes-updates',
