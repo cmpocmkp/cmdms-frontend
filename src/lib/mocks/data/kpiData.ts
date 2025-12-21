@@ -18,26 +18,31 @@ export interface KPIData {
   users: KPIUser[];
 }
 
-// District names
+// District names - matching old CMDMS order for DC Inspection Report
 const districtNames = [
+  'Abbottabad',
+  'Bajaur',
+  'Bannu',
+  'Battagram',
+  'Buner',
+  'Charsadda',
+  'D.I Khan',
+  'Hangu',
+  'Haripur',
+  'Karak',
+  'Khyber',
+  'Kohat',
   'Peshawar',
   'Mardan',
-  'Abbottabad',
   'Swat',
-  'Kohat',
-  'Bannu',
   'Dera Ismail Khan',
   'Mansehra',
-  'Charsadda',
   'Swabi',
   'Nowshera',
-  'Haripur',
   'Mingora',
-  'Battagram',
   'Upper Dir',
   'Lower Dir',
   'Malakand',
-  'Buner',
   'Shangla',
   'Kohistan'
 ];

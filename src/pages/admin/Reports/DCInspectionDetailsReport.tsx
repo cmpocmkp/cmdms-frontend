@@ -296,6 +296,12 @@ export default function DCInspectionDetailsReport() {
           padding: 3px !important;
           font-weight: 500 !important;
         }
+        .table-striped tbody tr:nth-of-type(odd) {
+          background-color: rgba(0, 0, 0, 0.05) !important;
+        }
+        .table-striped tbody tr:nth-of-type(even) {
+          background-color: rgba(255, 255, 255, 1) !important;
+        }
         .card-body p {
           font-size: 12px;
         }
@@ -429,7 +435,7 @@ export default function DCInspectionDetailsReport() {
                 <div className="table-responsive">
                   <table
                     id="district-wise-breakup"
-                    className="table-bordered table-compact"
+                    className="table-bordered table-compact table-striped"
                     style={{ width: '100%' }}
                   >
                     <thead style={{ background: 'rgb(37, 136, 95)', color: 'white' }}>

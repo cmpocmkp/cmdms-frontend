@@ -3,11 +3,13 @@
  * EXACT replica of admin/kpi/data/departments.blade.php from old CMDMS
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { generateMockKPIColumns, generateMockKPIDataEntries, mockUserGroups, UserGroup, KPIColumn, KPIDataEntry } from '../../../lib/mocks/data/kpiData';
 
 export default function DepartmentsKPIsDataFilter() {
+  const tableRef = useRef<HTMLTableElement>(null);
+  const dataTableRef = useRef<any>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [todate, setTodate] = useState<string>(() => {
     const dateParam = searchParams.get('todate');
@@ -85,6 +87,107 @@ export default function DepartmentsKPIsDataFilter() {
     return `${day}/${month}/${year}`;
   };
 
+  // Initialize DataTables
+  useEffect(() => {
+    const loadScript = (src: string): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        if (document.querySelector(`script[src="${src}"]`)) {
+          resolve();
+          return;
+        }
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+        document.head.appendChild(script);
+      });
+    };
+
+    const initializeDataTable = async () => {
+      try {
+        // Only initialize if table exists and has data
+        if (!tableRef.current || processedData.length === 0 || departmentKpiColumns.length === 0) {
+          return;
+        }
+
+        // Load jQuery first
+        if (!(window as any).jQuery) {
+          await loadScript('https://code.jquery.com/jquery-3.7.1.min.js');
+        }
+
+        // Load DataTables
+        await loadScript('https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js');
+        await loadScript('https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js');
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+        await loadScript('https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js');
+
+        // Load DataTables CSS
+        if (!document.querySelector('link[href*="jquery.dataTables"]')) {
+          const link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = 'https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css';
+          document.head.appendChild(link);
+        }
+        if (!document.querySelector('link[href*="buttons.dataTables"]')) {
+          const link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = 'https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css';
+          document.head.appendChild(link);
+        }
+
+        const $ = (window as any).jQuery;
+
+        // Destroy existing DataTable if it exists
+        if (dataTableRef.current) {
+          dataTableRef.current.destroy();
+        }
+
+        // Initialize DataTable with export buttons
+        if (tableRef.current) {
+          dataTableRef.current = $(tableRef.current).DataTable({
+            dom: 'Bfrtip',
+            buttons: [{
+              extend: 'csvHtml5',
+              title: 'Department KPI Report',
+              exportOptions: {
+                orthogonal: "export",
+                rows: function(idx: number, data: any, node: any) {
+                  return true;
+                }
+              }
+            }],
+            scrollX: true,
+            pageLength: 100,
+            lengthChange: false,
+            order: [],
+            ordering: false,
+            info: false,
+            paging: false,
+            searching: true
+          });
+        }
+      } catch (error) {
+        console.error('Error initializing DataTable:', error);
+      }
+    };
+
+    // Small delay to ensure table is rendered
+    const timer = setTimeout(() => {
+      initializeDataTable();
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      if (dataTableRef.current) {
+        try {
+          dataTableRef.current.destroy();
+        } catch (e) {
+          // Ignore destroy errors
+        }
+      }
+    };
+  }, [processedData, departmentKpiColumns, todate, selectedGroup]); // Re-initialize when data or filters change
+
   return (
     <div className="content-wrapper">
       <div className="col-md-12 grid-margin stretch-card">
@@ -149,6 +252,7 @@ export default function DepartmentsKPIsDataFilter() {
           <div className="card-body">
             {processedData.length > 0 && departmentKpiColumns.length > 0 ? (
               <table
+                ref={tableRef}
                 id="showdepartmentskpidata"
                 className="table-striped"
                 style={{ width: '100%', border: '1px solid silver' }}
@@ -212,36 +316,57 @@ export default function DepartmentsKPIsDataFilter() {
                     processedData.forEach(({ userId, dateGroups }) => {
                       dateGroups.forEach((dateWise, date) => {
                         districtCounter++;
-                        const firstEntry = dateWise[0];
 
-                        rows.push(
-                          <tr key={`${userId}-${date}`}>
-                            <td
-                              style={{
-                                fontSize: '10px',
-                                textAlign: 'center',
-                                border: '1px solid silver'
-                              }}
-                            >
-                              {districtCounter}
-                            </td>
-                            <td
-                              style={{
-                                fontSize: '10px',
-                                textAlign: 'center',
-                                border: '1px solid silver'
-                              }}
-                            >
-                              {firstEntry.district?.name || ''}
-                            </td>
-                            {departmentKpiColumns.map((departmentKpiColumn) => {
-                              const matchingEntries = dateWise.filter(
-                                (d) => d.kpi_column_id === departmentKpiColumn.id
+                        // Build row cells matching old CMDMS structure exactly
+                        const cells: React.ReactNode[] = [];
+                        let handleSerialNumberAndDistrictColumns = 0;
+                        let snoAndDistrictRendered = false;
+
+                        departmentKpiColumns.forEach((departmentKpiColumn) => {
+                          let handleColumnRepetition = 0;
+                          let samDayDoubleEntryCounter = 0;
+
+                          // Loop through dateWise data to find matches
+                          dateWise.forEach((userData) => {
+                            handleSerialNumberAndDistrictColumns++;
+
+                            // Render S.NO and District only once per row (on first iteration of first column)
+                            if (handleSerialNumberAndDistrictColumns === 1 && !snoAndDistrictRendered) {
+                              cells.push(
+                                <td
+                                  key="sno"
+                                  style={{
+                                    fontSize: '10px',
+                                    textAlign: 'center',
+                                    border: '1px solid silver'
+                                  }}
+                                >
+                                  {districtCounter}
+                                </td>
                               );
-                              const matchingEntry = matchingEntries.length > 0 ? matchingEntries[0] : null;
+                              cells.push(
+                                <td
+                                  key="district"
+                                  style={{
+                                    fontSize: '10px',
+                                    textAlign: 'center',
+                                    border: '1px solid silver'
+                                  }}
+                                >
+                                  {userData.district?.name || ''}
+                                </td>
+                              );
+                              snoAndDistrictRendered = true;
+                            }
 
-                              if (matchingEntry) {
-                                return (
+                            // Check if this KPI column matches the userData
+                            if (departmentKpiColumn.id === userData.kpi_column_id) {
+                              samDayDoubleEntryCounter++;
+
+                              // Only render if this is the first match (avoid duplicates)
+                              // Note: Old CMDMS has this check commented out, but we'll keep it for safety
+                              if (samDayDoubleEntryCounter === 1) {
+                                cells.push(
                                   <td
                                     key={departmentKpiColumn.id}
                                     style={{
@@ -251,33 +376,48 @@ export default function DepartmentsKPIsDataFilter() {
                                       background: 'lightcyan'
                                     }}
                                   >
-                                    {matchingEntry.value}
+                                    {userData.value}
                                   </td>
                                 );
+                                handleColumnRepetition = 1;
                               }
+                            }
+                          });
 
-                              return (
-                                <td
-                                  key={departmentKpiColumn.id}
-                                  style={{
-                                    fontSize: '10px',
-                                    textAlign: 'center',
-                                    border: '1px solid silver'
-                                  }}
-                                >
-                                  0
-                                </td>
-                              );
-                            })}
-                            <td
-                              style={{
-                                fontSize: '10px',
-                                textAlign: 'center',
-                                border: '1px solid silver'
-                              }}
-                            >
-                              {formatDateDisplay(date)}
-                            </td>
+                          // If no match found for this column, render 0
+                          if (handleColumnRepetition === 0) {
+                            cells.push(
+                              <td
+                                key={departmentKpiColumn.id}
+                                style={{
+                                  fontSize: '10px',
+                                  textAlign: 'center',
+                                  border: '1px solid silver'
+                                }}
+                              >
+                                0
+                              </td>
+                            );
+                          }
+                        });
+
+                        // Add Created Date at the end
+                        cells.push(
+                          <td
+                            key="created-date"
+                            style={{
+                              fontSize: '10px',
+                              textAlign: 'center',
+                              border: '1px solid silver'
+                            }}
+                          >
+                            {formatDateDisplay(date)}
+                          </td>
+                        );
+
+                        rows.push(
+                          <tr key={`${userId}-${date}`}>
+                            {cells}
                           </tr>
                         );
                       });
