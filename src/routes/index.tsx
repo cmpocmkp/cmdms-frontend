@@ -160,6 +160,7 @@ const DPOsKPIsDataFilter = lazy(() => import('../pages/admin/Reports/DPOsKPIsDat
 const DepartmentsKPIsDataFilter = lazy(() => import('../pages/admin/Reports/DepartmentsKPIsDataFilter'));
 const DCInspectionDetailsReport = lazy(() => import('../pages/admin/Reports/DCInspectionDetailsReport'));
 const PMRUMetingsReport = lazy(() => import('../pages/admin/Reports/PMRUMetingsReport'));
+const PMRUSubtasksDetail = lazy(() => import('../pages/admin/Reports/PMRUSubtasksDetail'));
 const FilterRecordNotesReport = lazy(() => import('../pages/admin/Reports/FilterRecordNotesReport'));
 const PTFDashboardReport = lazy(() => import('../pages/admin/Reports/PTFDashboardReport'));
 const PTFMeetingsReport = lazy(() => import('../pages/admin/Reports/PTFMeetingsReport'));
@@ -817,6 +818,10 @@ export const router = createBrowserRouter([
       {
         path: 'report/pmru-meetings',
         element: withSuspense(PMRUMetingsReport),
+      },
+      {
+        path: 'report/subtasks/of-department/pmru-meeting/:department',
+        element: withSuspense(PMRUSubtasksDetail),
       },
       {
         path: 'report/filter-recordnotes',
