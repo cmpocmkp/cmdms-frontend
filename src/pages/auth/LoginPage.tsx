@@ -10,6 +10,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuthStore } from '../../store/authStore';
+import SplashScreen from '../../components/shared/SplashScreen';
 
 // Validation schema
 const loginSchema = z.object({
@@ -24,6 +25,7 @@ export default function LoginPage() {
   const login = useAuthStore((state) => state.login);
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState<string>('');
+  const [showSplash, setShowSplash] = useState(false);
 
   const {
     register,
@@ -32,6 +34,23 @@ export default function LoginPage() {
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
+
+  const handleSplashComplete = () => {
+    setShowSplash(false);
+    // Get user from store to determine redirect
+    const user = useAuthStore.getState().user;
+    
+    // Redirect based on role
+    if (user?.role_id === 1) {
+      navigate('/admin/dashboard');
+    } else if (user?.role_id === 5) {
+      navigate('/cs/dashboard');
+    } else if (user?.role_id === 2) {
+      navigate('/department/dashboard');
+    } else {
+      navigate('/admin/dashboard'); // Default
+    }
+  };
 
   const onSubmit = async (data: LoginFormData) => {
     try {
@@ -42,19 +61,8 @@ export default function LoginPage() {
       const success = await login(data.email, data.password);
       
       if (success) {
-        // Get user from store to determine redirect
-        const user = useAuthStore.getState().user;
-        
-        // Redirect based on role
-        if (user?.role_id === 1) {
-          navigate('/admin/dashboard');
-        } else if (user?.role_id === 5) {
-          navigate('/cs/dashboard');
-        } else if (user?.role_id === 2) {
-          navigate('/department/dashboard');
-        } else {
-          navigate('/admin/dashboard'); // Default
-        }
+        // Show splash screen before redirect
+        setShowSplash(true);
       } else {
         setServerError('These credentials do not match our records.');
       }
@@ -67,6 +75,13 @@ export default function LoginPage() {
 
   return (
     <>
+      {showSplash && (
+        <SplashScreen 
+          onComplete={handleSplashComplete}
+          duration={2000}
+        />
+      )}
+      
       {/* Login-specific styles (exact from old CMDMS CSS) */}
       <style>{`
         .loginMain {
@@ -141,7 +156,7 @@ export default function LoginPage() {
         }
       `}</style>
 
-      <div className="loginMain">
+      <div className="loginMain" style={{ display: showSplash ? 'none' : 'block' }}>
         <div className="row d-flex justify-content-center align-items-center h-100">
           <div className="col-xs-12 col-sm-12 col-md-8 col-lg-6 col-xl-4 mx-auto">
             <div className="logindiv">

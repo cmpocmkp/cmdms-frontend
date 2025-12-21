@@ -19,6 +19,7 @@ const NotFoundPage = lazy(() => import('../pages/NotFoundPage'));
 const UsersList = lazy(() => import('../pages/admin/Users/UsersList'));
 const AddUser = lazy(() => import('../pages/admin/Users/AddUser'));
 const EditUser = lazy(() => import('../pages/admin/Users/EditUser'));
+const UserSettings = lazy(() => import('../pages/admin/Settings/UserSettings'));
 const AssignDepartments = lazy(() => import('../pages/admin/Users/AssignDepartments'));
 const AssignPermissions = lazy(() => import('../pages/admin/Users/AssignPermissions'));
 const ApiTokens = lazy(() => import('../pages/admin/Users/ApiTokens'));
@@ -289,6 +290,10 @@ export const router = createBrowserRouter([
       {
         path: 'users/export',
         element: withSuspense(ExportUsers),
+      },
+      {
+        path: 'settings',
+        element: withSuspense(UserSettings),
       },
       {
         path: 'activitylogs',
