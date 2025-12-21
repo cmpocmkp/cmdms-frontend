@@ -208,6 +208,36 @@ export function generateMockKPIColumns(count: number = 5): KPIColumn[] {
   }));
 }
 
+// Generate specific DPOs KPI columns matching old CMDMS
+export function generateDPOsKPIColumns(): KPIColumn[] {
+  return [
+    // Offences KPI columns
+    { id: 1, name: 'Abduction', kpi: { id: 1, name: 'Offences' } },
+    { id: 2, name: 'Child lifting', kpi: { id: 1, name: 'Offences' } },
+    { id: 3, name: 'Asslt: on police', kpi: { id: 1, name: 'Offences' } },
+    { id: 4, name: 'Docaity', kpi: { id: 1, name: 'Offences' } },
+    { id: 5, name: 'Robbery', kpi: { id: 1, name: 'Offences' } },
+    { id: 6, name: 'Burglary', kpi: { id: 1, name: 'Offences' } },
+    { id: 7, name: 'Theft', kpi: { id: 1, name: 'Offences' } },
+    { id: 8, name: 'Car lifting', kpi: { id: 1, name: 'Offences' } },
+    { id: 9, name: 'M cycle theft', kpi: { id: 1, name: 'Offences' } },
+    { id: 10, name: 'M cycle snatching', kpi: { id: 1, name: 'Offences' } },
+    { id: 11, name: 'Others/misc', kpi: { id: 1, name: 'Offences' } },
+    // Campaign against drug KPI columns
+    { id: 12, name: 'Drug Campaign No. of Registered Cases', kpi: { id: 2, name: 'Campaign against drug' } },
+    { id: 13, name: 'Drug Campaign Accused Arrested', kpi: { id: 2, name: 'Campaign against drug' } },
+    { id: 14, name: 'Drug Campaign Charas (KGS)', kpi: { id: 2, name: 'Campaign against drug' } },
+    { id: 15, name: 'Heroin (KGS)', kpi: { id: 2, name: 'Campaign against drug' } },
+    { id: 16, name: 'ICE (KGS)', kpi: { id: 2, name: 'Campaign against drug' } },
+    { id: 17, name: 'Liquor (KGS)', kpi: { id: 2, name: 'Campaign against drug' } },
+    { id: 18, name: 'Drug Campaign Trafficking drugs No. of Cases Registered', kpi: { id: 2, name: 'Campaign against drug' } },
+    // Illegal arm/ammunition KPI columns
+    { id: 19, name: 'No. of Registe Case Illegal Arr', kpi: { id: 3, name: 'Illegle arm/ammunitic' } },
+    { id: 20, name: 'Illegal Arms Recovered', kpi: { id: 3, name: 'Illegle arm/ammunitic' } },
+    { id: 21, name: 'Ammunition Recovered', kpi: { id: 3, name: 'Illegle arm/ammunitic' } }
+  ];
+}
+
 // Generate mock KPI data entries grouped by user
 export function generateMockKPIDataEntries(
   userIds: number[],

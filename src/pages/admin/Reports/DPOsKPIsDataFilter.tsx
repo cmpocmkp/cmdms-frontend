@@ -3,11 +3,13 @@
  * EXACT replica of admin/kpi/data/dpos.blade.php from old CMDMS
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { generateMockKPIColumns, generateMockKPIDataEntries, KPIColumn, KPIDataEntry } from '../../../lib/mocks/data/kpiData';
+import { generateDPOsKPIColumns, generateMockKPIDataEntries, KPIColumn, KPIDataEntry } from '../../../lib/mocks/data/kpiData';
 
 export default function DPOsKPIsDataFilter() {
+  const tableRef = useRef<HTMLTableElement>(null);
+  const dataTableRef = useRef<any>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [todate, setTodate] = useState<string>(() => {
     const dateParam = searchParams.get('todate');
@@ -16,8 +18,8 @@ export default function DPOsKPIsDataFilter() {
     return today.toISOString().split('T')[0];
   });
 
-  // Generate mock data
-  const dcKpiColumns: KPIColumn[] = useMemo(() => generateMockKPIColumns(6), []);
+  // Generate mock data - use specific DPOs columns matching old CMDMS
+  const dcKpiColumns: KPIColumn[] = useMemo(() => generateDPOsKPIColumns(), []);
   const mockUserIds = useMemo(() => Array.from({ length: 10 }, (_, i) => i + 1), []);
   
   const kpiDataMap = useMemo(() => {
@@ -59,6 +61,102 @@ export default function DPOsKPIsDataFilter() {
     setTodate(todayStr);
     setSearchParams({});
   };
+
+  // Initialize DataTables
+  useEffect(() => {
+    const loadScript = (src: string): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        if (document.querySelector(`script[src="${src}"]`)) {
+          resolve();
+          return;
+        }
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+        document.head.appendChild(script);
+      });
+    };
+
+    const initializeDataTable = async () => {
+      try {
+        // Load jQuery first
+        if (!(window as any).jQuery) {
+          await loadScript('https://code.jquery.com/jquery-3.7.1.min.js');
+        }
+
+        // Load DataTables
+        await loadScript('https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js');
+        await loadScript('https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js');
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+        await loadScript('https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js');
+
+        // Load DataTables CSS
+        if (!document.querySelector('link[href*="jquery.dataTables"]')) {
+          const link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = 'https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css';
+          document.head.appendChild(link);
+        }
+        if (!document.querySelector('link[href*="buttons.dataTables"]')) {
+          const link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = 'https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css';
+          document.head.appendChild(link);
+        }
+
+        const $ = (window as any).jQuery;
+
+        // Destroy existing DataTable if it exists
+        if (dataTableRef.current) {
+          dataTableRef.current.destroy();
+        }
+
+        // Initialize DataTable with export buttons
+        if (tableRef.current) {
+          dataTableRef.current = $(tableRef.current).DataTable({
+            dom: 'Bfrtip',
+            buttons: [{
+              extend: 'csvHtml5',
+              title: 'DPOs District KPi Report',
+              exportOptions: {
+                orthogonal: "export",
+                rows: function(idx: number, data: any, node: any) {
+                  return true;
+                }
+              }
+            }],
+            scrollX: true,
+            pageLength: 100,
+            lengthChange: false,
+            order: [],
+            ordering: false,
+            info: false,
+            paging: false,
+            searching: true
+          });
+        }
+      } catch (error) {
+        console.error('Error initializing DataTable:', error);
+      }
+    };
+
+    // Small delay to ensure table is rendered
+    const timer = setTimeout(() => {
+      initializeDataTable();
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      if (dataTableRef.current) {
+        try {
+          dataTableRef.current.destroy();
+        } catch (e) {
+          // Ignore destroy errors
+        }
+      }
+    };
+  }, [processedData, todate]); // Re-initialize when data or date filter changes
 
   return (
     <div className="content-wrapper">
@@ -102,6 +200,7 @@ export default function DPOsKPIsDataFilter() {
           </div>
           <div className="card-body">
             <table
+              ref={tableRef}
               id="showdposkpidata"
               className="table-striped"
               style={{ width: '100%', border: '1px solid silver' }}
@@ -170,34 +269,55 @@ export default function DPOsKPIsDataFilter() {
                       districtCounter++;
                       const firstEntry = dateWise[0];
 
-                      rows.push(
-                        <tr key={`${userId}-${date}`}>
-                          <td
-                            style={{
-                              fontSize: '10px',
-                              textAlign: 'center',
-                              border: '1px solid silver'
-                            }}
-                          >
-                            {districtCounter}
-                          </td>
-                          <td
-                            style={{
-                              fontSize: '10px',
-                              textAlign: 'center',
-                              border: '1px solid silver'
-                            }}
-                          >
-                            {firstEntry.district?.name || ''}
-                          </td>
-                          {dcKpiColumns.map((dcKpiColumn) => {
-                            const matchingEntries = dateWise.filter(
-                              (d) => d.kpi_column_id === dcKpiColumn.id
-                            );
-                            const matchingEntry = matchingEntries.length > 0 ? matchingEntries[0] : null;
+                      // Build row cells matching old CMDMS structure exactly
+                      const cells: React.ReactNode[] = [];
+                      let handleSerialNumberAndDistrictColumns = 0;
+                      let snoAndDistrictRendered = false;
 
-                            if (matchingEntry) {
-                              return (
+                      dcKpiColumns.forEach((dcKpiColumn) => {
+                        let handleColumnRepetition = 0;
+                        let samDayDoubleEntryCounter = 0;
+
+                        // Loop through dateWise data to find matches
+                        dateWise.forEach((userData) => {
+                          handleSerialNumberAndDistrictColumns++;
+
+                          // Render S.NO and District only once per row (on first iteration of first column)
+                          if (handleSerialNumberAndDistrictColumns === 1 && !snoAndDistrictRendered) {
+                            cells.push(
+                              <td
+                                key="sno"
+                                style={{
+                                  fontSize: '10px',
+                                  textAlign: 'center',
+                                  border: '1px solid silver'
+                                }}
+                              >
+                                {districtCounter}
+                              </td>
+                            );
+                            cells.push(
+                              <td
+                                key="district"
+                                style={{
+                                  fontSize: '10px',
+                                  textAlign: 'center',
+                                  border: '1px solid silver'
+                                }}
+                              >
+                                {userData.district?.name || ''}
+                              </td>
+                            );
+                            snoAndDistrictRendered = true;
+                          }
+
+                          // Check if this KPI column matches the userData
+                          if (dcKpiColumn.id === userData.kpi_column_id) {
+                            samDayDoubleEntryCounter++;
+
+                            // Only render if this is the first match (avoid duplicates)
+                            if (samDayDoubleEntryCounter === 1) {
+                              cells.push(
                                 <td
                                   key={dcKpiColumn.id}
                                   style={{
@@ -207,34 +327,49 @@ export default function DPOsKPIsDataFilter() {
                                     background: 'lightcyan'
                                   }}
                                 >
-                                  {matchingEntry.value}
+                                  {userData.value}
                                 </td>
                               );
+                              handleColumnRepetition = 1;
                             }
+                          }
+                        });
 
-                            return (
-                              <td
-                                key={dcKpiColumn.id}
-                                style={{
-                                  fontSize: '10px',
-                                  textAlign: 'center',
-                                  border: '1px solid silver'
-                                }}
-                              >
-                                0
-                              </td>
-                            );
-                          })}
-                          <td
-                            style={{
-                              width: '200px',
-                              fontSize: '10px',
-                              textAlign: 'center',
-                              border: '1px solid silver'
-                            }}
-                          >
-                            {date}
-                          </td>
+                        // If no match found for this column, render 0
+                        if (handleColumnRepetition === 0) {
+                          cells.push(
+                            <td
+                              key={dcKpiColumn.id}
+                              style={{
+                                fontSize: '10px',
+                                textAlign: 'center',
+                                border: '1px solid silver'
+                              }}
+                            >
+                              0
+                            </td>
+                          );
+                        }
+                      });
+
+                      // Add Created Date at the end
+                      cells.push(
+                        <td
+                          key="created-date"
+                          style={{
+                            width: '200px',
+                            fontSize: '10px',
+                            textAlign: 'center',
+                            border: '1px solid silver'
+                          }}
+                        >
+                          {date}
+                        </td>
+                      );
+
+                      rows.push(
+                        <tr key={`${userId}-${date}`}>
+                          {cells}
                         </tr>
                       );
                     });
