@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { api } from '../../../lib/api';
+import { useParams, Link } from 'react-router-dom';
 
 interface StatusCard {
   status: string;
@@ -66,7 +65,6 @@ interface Meeting {
 
 export default function CabinetDetailReport() {
   const { deptid, stat } = useParams<{ deptid: string; stat: string }>();
-  const navigate = useNavigate();
   const decision_status = stat || '5';
   const [loading, setLoading] = useState(true);
   const [meetings, setMeetings] = useState<Meeting[]>([]);

@@ -4,11 +4,10 @@
  */
 
 import { useState, useEffect } from 'react';
-import { api } from '../../../../lib/api';
 
 export default function PTFDistrictWiseReport() {
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<any[]>([]);
+  const [data, _setData] = useState<any[]>([]);
 
   useEffect(() => {
     // TODO: Replace with actual API call

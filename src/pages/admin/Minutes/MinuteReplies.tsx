@@ -4,8 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
-import { api } from '../../../lib/api';
+import { Link, useParams } from 'react-router-dom';
 
 interface TaggedDepartment {
   id: number;
@@ -62,11 +61,10 @@ interface Minute {
 
 export default function MinuteReplies() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [minute, setMinute] = useState<Minute | null>(null);
   const [relatedDepartments, setRelatedDepartments] = useState<Department[]>([]);
-  const [allDepartments, setAllDepartments] = useState<Department[]>([]);
+  const [_allDepartments, setAllDepartments] = useState<Department[]>([]);
 
   useEffect(() => {
     // TODO: Replace with actual API call

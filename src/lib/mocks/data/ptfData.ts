@@ -38,7 +38,7 @@ export function generateMockPTFDepartments(): PTFDepartment[] {
     const overdue_other = faker.number.int({ min: 0, max: Math.floor(total * 0.05) });
 
     return {
-      id: dept.id,
+      id: Number(dept.id),
       name: dept.name,
       total,
       completed,

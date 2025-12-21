@@ -5,7 +5,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { api } from '../../../lib/api';
 
 interface BoardAct {
   id: number;
@@ -148,7 +147,7 @@ export default function BoardActsShowReport() {
     setDateWiseBoardActs(dummyDateWiseBoardActs);
     // Initialize active tabs
     const initialTabs: Record<number, string> = {};
-    Object.values(dummyDateWiseBoardActs).forEach((acts, index) => {
+    Object.values(dummyDateWiseBoardActs).forEach((_acts, index) => {
       initialTabs[index + 1] = 'act';
     });
     setActiveTab(initialTabs);

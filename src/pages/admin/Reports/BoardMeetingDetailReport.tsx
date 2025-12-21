@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
-import { api } from '../../../lib/api';
+import { Link, useParams } from 'react-router-dom';
 
 interface Meeting {
   id: number;
@@ -28,7 +27,6 @@ export default function BoardMeetingDetailReport() {
     department_id: string;
     decision_status: string;
   }>();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [departmentName, setDepartmentName] = useState('');
@@ -100,17 +98,6 @@ export default function BoardMeetingDetailReport() {
     setLoading(false);
   }, [department_id, decision_status]);
 
-  const badgesWithStatus: Record<string, string> = {
-    success: 'Implemented',
-    danger: 'Pending',
-    warning: 'Other',
-  };
-
-  const getStatusBadgeClass = (status: string): string => {
-    if (status === 'Implemented') return 'badge-success';
-    if (status === 'Pending') return 'badge-danger';
-    return 'badge-warning';
-  };
 
   if (loading) {
     return <div className="text-center p-5">Loading...</div>;
@@ -291,7 +278,7 @@ export default function BoardMeetingDetailReport() {
                                   {point.attachments && (
                                     <div>
                                       {Array.isArray(point.attachments) ? (
-                                        point.attachments.map((file, fileIndex) => (
+                                        point.attachments.map((_file, fileIndex) => (
                                           <span key={fileIndex}>
                                             <a href="#" title="click to download attach file">
                                               Attachment: <i className="ti-file"></i>

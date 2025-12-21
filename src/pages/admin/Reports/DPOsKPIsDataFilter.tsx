@@ -121,7 +121,7 @@ export default function DPOsKPIsDataFilter() {
               title: 'DPOs District KPi Report',
               exportOptions: {
                 orthogonal: "export",
-                rows: function(idx: number, data: any, node: any) {
+                rows: function(_idx: number, _data: any, _node: any) {
                   return true;
                 }
               }
@@ -267,7 +267,6 @@ export default function DPOsKPIsDataFilter() {
                   processedData.forEach(({ userId, dateGroups }) => {
                     dateGroups.forEach((dateWise, date) => {
                       districtCounter++;
-                      const firstEntry = dateWise[0];
 
                       // Build row cells matching old CMDMS structure exactly
                       const cells: React.ReactNode[] = [];

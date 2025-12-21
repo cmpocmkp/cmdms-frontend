@@ -139,7 +139,7 @@ const mockTasks = generateMockTasks();
 
 export default function KhushhaalKPKTasksReport() {
   const [selectedTask, setSelectedTask] = useState<number | null>(null);
-  const [selectedDepartment, setSelectedDepartment] = useState<number | null>(null);
+  const [_selectedDepartment, setSelectedDepartment] = useState<number | null>(null);
   const [modalContent, setModalContent] = useState<string>('');
 
   const handleViewProgress = (taskId: number, deptId: number) => {
@@ -169,7 +169,7 @@ export default function KhushhaalKPKTasksReport() {
       let filesHtml = '';
       if (prog.attachments && prog.attachments.length > 0) {
         filesHtml = '<p><b>Presentation/Docs</b></p><ol>';
-        prog.attachments.forEach(file => {
+        prog.attachments.forEach(_file => {
           const date = new Date(prog.created_at).toLocaleDateString('en-GB');
           filesHtml += `<li><a href="#" style="font-size:16px;" title="click to download attached file"><i class="ti-receipt" style="font-size: 16px;margin-right: 5px;"></i>${date}</a></li>`;
         });
@@ -199,7 +199,7 @@ export default function KhushhaalKPKTasksReport() {
       let repliesHtml = '<div class="row" style="margin-top:10px;"><div class="col-md-12 grid-margin stretch-card"><div class="card"><div><h4 class="card-title" style="background: green;padding: 15px;color: white;">Overall Response Presentations/Docs/Attachments</h4><ol style="padding-left: 25px;">';
       dept.replies.forEach(reply => {
         if (reply.attachments && reply.attachments.length > 0) {
-          reply.attachments.forEach(file => {
+          reply.attachments.forEach(_file => {
             const date = new Date(reply.created_at).toLocaleDateString('en-GB');
             repliesHtml += `<li><a href="#" style="font-size:16px;" title="click to download attached file"><i class="ti-receipt" style="font-size: 16px;margin-right: 5px;"></i>${date}</a>${reply.reply}</li>`;
           });

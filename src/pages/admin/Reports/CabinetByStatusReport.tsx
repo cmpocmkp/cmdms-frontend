@@ -5,7 +5,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { api } from '../../../lib/api';
 
 interface StatusCard {
   status: string;
@@ -37,12 +36,15 @@ interface Minute {
     id: number;
     reply_detail: string;
     created_at: string;
+    status?: number;
     user: {
       name: string;
+      role_id?: number;
       department: {
         name: string;
       };
     };
+    department_id?: number;
   }>;
 }
 
@@ -306,15 +308,15 @@ export default function CabinetByStatusReport() {
   const handlePrint = () => {
     const printElement = document.getElementById('print-area');
     if (printElement) {
-      const printSection = document.getElementById('printSection');
+      let printSection = document.getElementById('printSection');
       if (!printSection) {
         const newPrintSection = document.createElement('div');
         newPrintSection.id = 'printSection';
         document.body.appendChild(newPrintSection);
+        printSection = document.getElementById('printSection');
       }
-      const clonedElement = printElement.cloneNode(true);
-      const printSection = document.getElementById('printSection');
       if (printSection) {
+        const clonedElement = printElement.cloneNode(true);
         printSection.innerHTML = '';
         printSection.appendChild(clonedElement);
         window.print();

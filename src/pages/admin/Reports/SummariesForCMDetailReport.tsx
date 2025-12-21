@@ -5,7 +5,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { api } from '../../../lib/api';
 
 interface Task {
   id: number;
@@ -230,7 +229,7 @@ export default function SummariesForCMDetailReport() {
   // Flatten tasks for export
   const flattenedTasks = useMemo(() => {
     const flat: Array<{ summaryTitle: string; task: Task }> = [];
-    Object.entries(filteredGroupedTasks).forEach(([summaryId, summaryTasks]) => {
+    Object.entries(filteredGroupedTasks).forEach(([_summaryId, summaryTasks]) => {
       const firstTask = summaryTasks[0];
       summaryTasks.forEach((task) => {
         flat.push({

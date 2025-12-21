@@ -3,10 +3,9 @@
  * EXACT replica of admin/ptf/details.blade.php from old CMDMS
  */
 
-import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getMockPTFIssueById } from '../../../lib/mocks/data/ptfIssuesData';
-import { Edit, CheckCircle, XCircle, FileText, Calendar, Clock } from 'lucide-react';
+import { Edit, CheckCircle, XCircle, FileText } from 'lucide-react';
 
 export default function PTFIssueDetail() {
   const { id } = useParams<{ id: string }>();

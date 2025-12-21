@@ -5,7 +5,7 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { generateMockKPIColumns, generateMockKPIDataEntries, mockUserGroups, UserGroup, KPIColumn, KPIDataEntry } from '../../../lib/mocks/data/kpiData';
+import { generateMockKPIColumns, generateMockKPIDataEntries, mockUserGroups, KPIColumn, KPIDataEntry } from '../../../lib/mocks/data/kpiData';
 
 export default function DepartmentsKPIsDataFilter() {
   const tableRef = useRef<HTMLTableElement>(null);
@@ -151,7 +151,7 @@ export default function DepartmentsKPIsDataFilter() {
               title: 'Department KPI Report',
               exportOptions: {
                 orthogonal: "export",
-                rows: function(idx: number, data: any, node: any) {
+                rows: function(_idx: number, _data: any, _node: any) {
                   return true;
                 }
               }

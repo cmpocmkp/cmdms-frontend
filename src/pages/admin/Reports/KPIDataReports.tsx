@@ -5,7 +5,7 @@
  */
 
 import { mockKPIsData, mockTodayKPIsData, mockYesterdayKPIsData, mockKPICards } from '../../../lib/mocks/data/kpiData';
-import { List, Check, Target, RefreshCw, AlertTriangle, Clock, AlertCircle } from 'lucide-react';
+import { List, Check, Target, RefreshCw, AlertTriangle, Clock } from 'lucide-react';
 
 // Helper function to capitalize words
 const capitalizeWords = (str: string): string => {

@@ -5,7 +5,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../../../lib/api';
 
 interface Board {
   id: number;

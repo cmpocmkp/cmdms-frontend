@@ -3,8 +3,8 @@
  * EXACT replica of admin/report/pmru/subtasks-of-department.blade.php from old CMDMS
  */
 
-import React, { useState, useMemo } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import React, { useMemo } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { faker } from '@faker-js/faker';
 import { mockAdminDepartments } from '../../../lib/mocks/data/adminDepartments';
 import { Printer, MessageSquare } from 'lucide-react';
@@ -203,9 +203,6 @@ const generateMockPMRUMinutes = (departmentId: string): MeetingMinute[] => {
 
 export default function PMRUSubtasksDetail() {
   const { department } = useParams<{ department: string }>();
-  const navigate = useNavigate();
-  const [selectedMinute, setSelectedMinute] = useState<Minute | null>(null);
-  const [modalContent, setModalContent] = useState<string>('');
 
   const departmentName = useMemo(() => {
     const dept = mockAdminDepartments.find(d => d.id === parseInt(department || '0'));
@@ -409,7 +406,7 @@ export default function PMRUSubtasksDetail() {
                                 minute.replies.forEach((reply) => {
                                   if (reply.type !== 'cmr' && reply.user) {
                                     const fileLinks = reply.attachments && reply.attachments.length > 0
-                                      ? `<p>Attachments: ${reply.attachments.map(f => `<span><a href="#" title="click to download attach file"><i class="ti-file"></i></a></span>`).join(' ')}</p>`
+                                      ? `<p>Attachments: ${reply.attachments.map(_f => `<span><a href="#" title="click to download attach file"><i class="ti-file"></i></a></span>`).join(' ')}</p>`
                                       : '';
                                     
                                     departmentSoCorrespondence += `

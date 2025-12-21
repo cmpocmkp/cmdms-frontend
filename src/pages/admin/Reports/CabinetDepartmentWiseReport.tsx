@@ -3,9 +3,8 @@
  * EXACT replica of admin/report/cabinet/department-wise
  */
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { api } from '../../../lib/api';
 
 interface Department {
   id: number;
@@ -800,16 +799,7 @@ export default function CabinetDepartmentWiseReport() {
                             )}
                             {meeting.minutes.map((minute, minuteIndex) => {
                               // Get last comment for each department
-                              const departmentComments = minute.departments.map(dept => {
-                                const lastComment = minute.replies
-                                  ?.filter(reply => (reply as any).department_id === dept.id)
-                                  ?.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
-                                return {
-                                  department: dept,
-                                  lastComment,
-                                  comment: lastComment?.reply_detail || minute.comments,
-                                };
-                              });
+                              // Note: departmentComments was calculated but not used in rendering
 
                               return (
                                 <tr key={minute.id} id={`decision${minute.id}`}>

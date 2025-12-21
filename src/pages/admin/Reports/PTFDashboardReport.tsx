@@ -3,7 +3,7 @@
  * EXACT replica of admin/ptf/index.blade.php from old CMDMS
  */
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { generateMockPTFIssues, PTFIssue } from '../../../lib/mocks/data/ptfIssuesData';
 import { FileText, Clock, CheckCircle, XCircle, Square } from 'lucide-react';

@@ -3,7 +3,7 @@
  * EXACT replica of admin/ptf/list-issue.blade.php from old CMDMS
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { generateMockPTFIssues, PTFIssue } from '../../../lib/mocks/data/ptfIssuesData';
 import { mockDepartments } from '../../../lib/mocks/data/departments';
@@ -65,7 +65,7 @@ export default function PTFIssueList() {
   // Get unique departments for filter
   const departments = useMemo(() => {
     const deptIds = new Set(allIssues.map(i => i.department_id));
-    return mockDepartments.filter(d => deptIds.has(d.id));
+    return mockDepartments.filter(d => deptIds.has(Number(d.id)));
   }, [allIssues]);
   
   const handleFilter = (e: React.FormEvent<HTMLFormElement>) => {

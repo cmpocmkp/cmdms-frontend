@@ -5,7 +5,6 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../../../../lib/api';
 
 interface StatusCard {
   route: string;
@@ -21,7 +20,7 @@ interface StatusCard {
 
 export default function PTFDashboard() {
   const [loading, setLoading] = useState(true);
-  const [departments, setDepartments] = useState<any[]>([]);
+  const [departments, _setDepartments] = useState<any[]>([]);
   const [statusCards, setStatusCards] = useState<StatusCard[]>([]);
 
   useEffect(() => {

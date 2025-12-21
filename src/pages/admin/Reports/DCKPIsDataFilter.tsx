@@ -121,7 +121,7 @@ export default function DCKPIsDataFilter() {
               title: 'DCs District KPI Report',
               exportOptions: {
                 orthogonal: "export",
-                rows: function(idx: number, data: any, node: any) {
+                rows: function(_idx: number, _data: any, _node: any) {
                   return true;
                 }
               }

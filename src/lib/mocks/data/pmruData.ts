@@ -43,7 +43,7 @@ export function generateMockPMRUDepartments(): PMRUDepartment[] {
     const overdue_other = faker.number.int({ min: 0, max: Math.floor(total * 0.05) });
 
     return {
-      id: dept.id,
+      id: Number(dept.id),
       name: dept.name,
       decisions_count: total,
       completed,

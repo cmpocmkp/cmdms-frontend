@@ -6,13 +6,12 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { api } from '../../../lib/api';
 
 export default function RecordnotesComparisionReport() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [loading, setLoading] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [_loading, setLoading] = useState(false);
   const [comparisonData, setComparisonData] = useState<any[]>([]);
-  const [departments, setDepartments] = useState<any[]>([]);
+  const [departments, _setDepartments] = useState<any[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');

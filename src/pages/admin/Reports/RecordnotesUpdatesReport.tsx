@@ -5,11 +5,10 @@
  */
 
 import { useState, useEffect } from 'react';
-import { api } from '../../../lib/api';
 
 export default function RecordnotesUpdatesReport() {
   const [loading, setLoading] = useState(true);
-  const [departments, setDepartments] = useState<any[]>([]);
+  const [departments, _setDepartments] = useState<any[]>([]);
 
   useEffect(() => {
     // TODO: Replace with actual API call

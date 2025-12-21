@@ -3,7 +3,7 @@
  * EXACT replica of admin/report/kpi/dc/index.blade.php from old CMDMS
  */
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { generateMockDistrictInspectionData } from '../../../lib/mocks/data/kpiData';
 
 export default function DCInspectionDetailsReport() {

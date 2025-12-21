@@ -5,7 +5,6 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { api } from '../../../lib/api';
 
 interface Task {
   id: number;

@@ -96,7 +96,7 @@ const generateMockMeetings = (departmentId: string | null, fromDate: string, toD
       meeting_date: meetingDate.toISOString(),
       subject: faker.lorem.sentence(),
       department: {
-        id: dept.id,
+        id: Number(dept.id),
         name: dept.name
       },
       minutes

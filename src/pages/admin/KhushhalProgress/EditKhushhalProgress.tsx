@@ -36,7 +36,7 @@ const mockProgress: KhushhalProgress = {
 };
 
 export default function EditKhushhalProgress() {
-  const { id } = useParams<{ id: string }>();
+  const { id: _id } = useParams<{ id: string }>();
   const progress = mockProgress; // In real implementation, fetch by id
   const task = mockKhushhalKPKTasks.find(t => t.id === progress.khushhal_kpk_id);
 
@@ -207,7 +207,7 @@ export default function EditKhushhalProgress() {
                       </div>
                       {progress.attachments && progress.attachments.length > 0 && (
                         <div style={{ marginTop: '10px' }}>
-                          {progress.attachments.map((file, idx) => (
+                          {progress.attachments.map((_file, idx) => (
                             <span key={idx} style={{ marginRight: '10px' }}>
                               <a href="#" title="click to download attach file">
                                 Attachment:<i className="ti-file"></i>

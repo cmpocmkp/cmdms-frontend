@@ -63,19 +63,20 @@ export default function InaugurationsReport() {
     const grouped: Record<number, DepartmentInauguration> = {};
     
     // Filter departments (exclude 44, 45, 46)
-    const availableDepartments = mockDepartments.filter(dept => ![44, 45, 46].includes(dept.id));
+    const availableDepartments = mockDepartments.filter(dept => ![44, 45, 46].includes(Number(dept.id)));
     
     // Initialize departments
     availableDepartments.slice(0, 10).forEach(dept => {
-      grouped[dept.id] = {
-        id: dept.id,
+      const deptId = Number(dept.id);
+      grouped[deptId] = {
+        id: deptId,
         name: dept.name,
         inaugurationsBreaking: []
       };
     });
     
     // Assign inaugurations to departments
-    mockInaugurations.slice(0, 30).forEach((inaug, index) => {
+    mockInaugurations.slice(0, 30).forEach((inaug, _index) => {
       const deptId = inaug.department_id;
       if (grouped[deptId]) {
         grouped[deptId].inaugurationsBreaking.push({
@@ -224,7 +225,7 @@ export default function InaugurationsReport() {
                               </th>
                             </tr>
                             {/* Subsequent rows for each inauguration */}
-                            {department.inaugurationsBreaking.map((inaug, inaugIndex) => (
+                            {department.inaugurationsBreaking.map((inaug, _inaugIndex) => (
                               <tr key={inaug.id} className={rowClass}>
                                 <td style={{ width: '100px' }}>
                                   {getMonth(inaug.date)}

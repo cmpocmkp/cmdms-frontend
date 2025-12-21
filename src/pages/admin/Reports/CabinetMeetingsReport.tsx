@@ -5,7 +5,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../../../lib/api';
 
 interface StatusCard {
   route: string;

@@ -325,7 +325,7 @@ export default function ShowKhushhalKPK() {
                               <br/><br/>
                               {prog.attachments && prog.attachments.length > 0 && (
                                 <>
-                                  {prog.attachments.map((file, fileIdx) => (
+                                  {prog.attachments.map((_file, fileIdx) => (
                                     <span key={fileIdx} style={{ marginRight: '5px' }}>
                                       <a href="#" title="click to download attach file">
                                         Attachment/Presentation:<i className="ti-file"></i>

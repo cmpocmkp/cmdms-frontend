@@ -118,7 +118,7 @@ export const mockInaugurations: Inauguration[] = Array.from({ length: 50 }, (_, 
   const divisionName = divisionsMap[divisionKey];
   
   // Get a real department (excluding 44, 45, 46 as per old CMDMS controller)
-  const availableDepartments = mockDepartments.filter(dept => ![44, 45, 46].includes(dept.id));
+  const availableDepartments = mockDepartments.filter(dept => ![44, 45, 46].includes(Number(dept.id)));
   const department = faker.helpers.arrayElement(availableDepartments);
   
   const projectName = faker.helpers.arrayElement(projectNames);
@@ -128,7 +128,7 @@ export const mockInaugurations: Inauguration[] = Array.from({ length: 50 }, (_, 
 
   return {
     id: index + 1,
-    department_id: department.id,
+    department_id: Number(department.id),
     department_name: department.name,
     project_name: projectName,
     scheme: schemeName,

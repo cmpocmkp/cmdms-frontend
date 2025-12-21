@@ -3,13 +3,12 @@
  * EXACT replica of admin/report/review-meetings/index.blade.php
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { api } from '../../../lib/api';
 
 export default function ReviewMeetingsReport() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [loading, setLoading] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [_loading, setLoading] = useState(false);
   const [reviewMeetings, setReviewMeetings] = useState<any[]>([]);
   const [startDate, setStartDate] = useState<string>(
     new Date().toISOString().split('T')[0]

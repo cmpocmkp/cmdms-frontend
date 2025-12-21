@@ -4,11 +4,10 @@
  */
 
 import { useState, useEffect } from 'react';
-import { api } from '../../../../lib/api';
 
 export default function PTFMeetingsReport() {
   const [loading, setLoading] = useState(true);
-  const [meetings, setMeetings] = useState<any[]>([]);
+  const [meetings, _setMeetings] = useState<any[]>([]);
 
   useEffect(() => {
     // TODO: Replace with actual API call

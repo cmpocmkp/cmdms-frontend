@@ -3,9 +3,8 @@
  * EXACT replica of admin/report/boardmeetings/filter_boards
  */
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { api } from '../../../lib/api';
+import React, { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 
 interface Department {
   id: number;
@@ -38,11 +37,10 @@ interface AgendaPoint {
 
 export default function BoardMeetingFilterReport() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [showMemberModal, setShowMemberModal] = useState(false);
-  const [selectedMemberData, setSelectedMemberData] = useState<string>('');
+  const [selectedMemberData, _setSelectedMemberData] = useState<string>('');
 
   useEffect(() => {
     // TODO: Replace with actual API call
@@ -119,11 +117,6 @@ export default function BoardMeetingFilterReport() {
     setLoading(false);
   }, [searchParams]);
 
-  const badgesWithStatus: Record<string, string> = {
-    success: 'Implemented',
-    danger: 'Pending',
-    warning: 'Other',
-  };
 
   const getStatusBadgeClass = (status: string): string => {
     if (status === 'Implemented') return 'badge-success';

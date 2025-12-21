@@ -156,7 +156,7 @@ export default function KhushhalKPKReplies() {
                               {replyItem.attachments && replyItem.attachments.length > 0 && (
                                 <div className="buttons">
                                   <i className="ti-file"></i>
-                                  {replyItem.attachments.map((file, fileIdx) => (
+                                  {replyItem.attachments.map((_file, fileIdx) => (
                                     <span key={fileIdx}>
                                       |<span>
                                         <a href="#" title="click to download attach file">

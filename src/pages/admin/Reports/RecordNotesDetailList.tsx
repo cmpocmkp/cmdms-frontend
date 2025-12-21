@@ -3,9 +3,8 @@
  * EXACT replica of admin/report/recordnotes/all_detail.blade.php
  */
 
-import React, { useState, useEffect } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
-import { api } from '../../../lib/api';
+import { useState, useEffect } from 'react';
+import { Link, useParams } from 'react-router-dom';
 
 interface Reply {
   id: number;
@@ -54,7 +53,6 @@ interface Meeting {
 
 export default function RecordNotesDetailList() {
   const { meeting, minute } = useParams<{ meeting: string; minute: string }>();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [minuteDetail, setMinuteDetail] = useState<Minute | null>(null);
   const [meetingData, setMeetingData] = useState<Meeting | null>(null);
@@ -420,7 +418,7 @@ export default function RecordNotesDetailList() {
                     {parentDepartmentReplies.some(r => r.attachments && r.attachments.length > 0) && (
                       <div>
                         {parentDepartmentReplies.map((reply) =>
-                          reply.attachments?.map((file, idx) => (
+                          reply.attachments?.map((_file, idx) => (
                             <a
                               key={idx}
                               href="#"
@@ -454,7 +452,7 @@ export default function RecordNotesDetailList() {
                     ) : null}
                     {minuteDetail.attachments && minuteDetail.attachments.length > 0 && (
                       <div>
-                        {minuteDetail.attachments.map((file, idx) => (
+                        {minuteDetail.attachments.map((_file, idx) => (
                           <a
                             key={idx}
                             href="#"
@@ -520,7 +518,7 @@ export default function RecordNotesDetailList() {
                           {relatedDepartmentReplies.some(r => r.attachments && r.attachments.length > 0) && (
                             <div>
                               {relatedDepartmentReplies.map((reply) =>
-                                reply.attachments?.map((file, idx) => (
+                                reply.attachments?.map((_file, idx) => (
                                   <a
                                     key={idx}
                                     href="#"

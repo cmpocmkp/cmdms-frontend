@@ -3,9 +3,7 @@
  * EXACT replica of admin/report/boardmeetings/upcoming
  */
 
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { api } from '../../../lib/api';
+import { useState, useEffect } from 'react';
 
 interface BoardMeeting {
   id: number;

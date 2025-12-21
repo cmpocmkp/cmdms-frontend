@@ -132,7 +132,7 @@ export function generateMockPTFIssues(status?: number | null, type?: string | nu
       
       const suggestedDepts = mockDepartments
         .filter(d => suggestedDeptIds.includes(d.id))
-        .map(d => ({ id: d.id, name: d.name }));
+        .map(d => ({ id: Number(d.id), name: d.name }));
       
       const assignedDepts = faker.helpers.arrayElements(suggestedDepts, { min: 0, max: suggestedDepts.length });
       
@@ -154,9 +154,9 @@ export function generateMockPTFIssues(status?: number | null, type?: string | nu
         timeline,
         sector: faker.helpers.arrayElement(['Education', 'Health', 'Infrastructure', 'Agriculture', 'Finance', null]),
         attachment: faker.datatype.boolean({ probability: 0.3 }) ? `attachment_${i + 1}.pdf` : null,
-        department_id: dept.id,
+        department_id: Number(dept.id),
         department: {
-          id: dept.id,
+          id: Number(dept.id),
           name: dept.name
         },
         priority: faker.helpers.arrayElement(mockPriorities),
@@ -184,7 +184,7 @@ export function generateMockPTFIssues(status?: number | null, type?: string | nu
         histories: Array.from({ length: faker.number.int({ min: 0, max: 5 }) }, (_, idx) => ({
           id: idx + 1,
           department: {
-            id: assignedDepts.length > 0 ? faker.helpers.arrayElement(assignedDepts).id : dept.id,
+            id: assignedDepts.length > 0 ? faker.helpers.arrayElement(assignedDepts).id : Number(dept.id),
             name: assignedDepts.length > 0 ? faker.helpers.arrayElement(assignedDepts).name : dept.name
           },
           userCreatedBy: {
@@ -201,7 +201,7 @@ export function generateMockPTFIssues(status?: number | null, type?: string | nu
         responses: Array.from({ length: faker.number.int({ min: 0, max: 3 }) }, (_, idx) => ({
           id: idx + 1,
           department: {
-            id: dept.id,
+            id: Number(dept.id),
             name: dept.name
           },
           userCreatedBy: {
@@ -235,10 +235,15 @@ export function generateMockPTFIssues(status?: number | null, type?: string | nu
   }
   
   // Filter by status
-  if (status !== undefined && status !== null && status !== 'no-decision') {
-    issues = issues.filter(i => i.status === parseInt(status as string));
-  } else if (status === 'no-decision') {
-    issues = issues.filter(i => i.decision === null);
+  if (status !== undefined && status !== null) {
+    if (typeof status === 'string' && status === 'no-decision') {
+      issues = issues.filter(i => i.decision === null);
+    } else {
+      const statusNum = typeof status === 'string' ? parseInt(status) : status;
+      if (typeof statusNum === 'number') {
+        issues = issues.filter(i => i.status === statusNum);
+      }
+    }
   }
   
   // Filter by type (on target / critically delayed)
