@@ -156,3 +156,169 @@ export const mockKPICards: KPICard[] = [
     showPercent: false
   }
 ];
+
+// KPI Column interface for filter pages
+export interface KPIColumn {
+  id: number;
+  name: string;
+  kpi?: {
+    id: number;
+    name: string;
+  };
+}
+
+// KPI Data Entry interface for filter pages
+export interface KPIDataEntry {
+  id: number;
+  user_id: number;
+  district_id?: number;
+  district?: {
+    id: number;
+    name: string;
+  };
+  kpi_column_id: number;
+  value: string | number;
+  created_at: string;
+}
+
+// Generate mock KPI columns for DC/DPO
+export function generateMockKPIColumns(count: number = 5): KPIColumn[] {
+  return Array.from({ length: count }, (_, index) => ({
+    id: index + 1,
+    name: faker.helpers.arrayElement([
+      'Total Cases',
+      'Resolved Cases',
+      'Pending Cases',
+      'Response Time',
+      'Public Satisfaction',
+      'Crime Rate',
+      'Arrest Rate',
+      'Clearance Rate'
+    ]),
+    kpi: {
+      id: index + 1,
+      name: faker.helpers.arrayElement([
+        'DC Performance',
+        'DPO Operations',
+        'Crime Prevention',
+        'Public Relations',
+        'Emergency Response'
+      ])
+    }
+  }));
+}
+
+// Generate mock KPI data entries grouped by user
+export function generateMockKPIDataEntries(
+  userIds: number[],
+  columns: KPIColumn[],
+  date: string
+): Map<number, KPIDataEntry[]> {
+  const dataMap = new Map<number, KPIDataEntry[]>();
+  
+  userIds.forEach((userId, userIndex) => {
+    const entries: KPIDataEntry[] = [];
+    const districtId = userIndex + 1;
+    
+    columns.forEach((column, colIndex) => {
+      // Not all columns have data for all users
+      if (faker.datatype.boolean({ probability: 0.7 })) {
+        entries.push({
+          id: userIndex * columns.length + colIndex + 1,
+          user_id: userId,
+          district_id: districtId,
+          district: {
+            id: districtId,
+            name: faker.helpers.arrayElement(districtNames)
+          },
+          kpi_column_id: column.id,
+          value: faker.number.int({ min: 0, max: 1000 }),
+          created_at: date
+        });
+      }
+    });
+    
+    if (entries.length > 0) {
+      dataMap.set(userId, entries);
+    }
+  });
+  
+  return dataMap;
+}
+
+// Mock user groups for departments filter
+export interface UserGroup {
+  id: number;
+  name: string;
+}
+
+export const mockUserGroups: UserGroup[] = [
+  { id: 1, name: 'Health Department' },
+  { id: 2, name: 'Education Department' },
+  { id: 3, name: 'Agriculture Department' },
+  { id: 4, name: 'Transport Department' },
+  { id: 5, name: 'Finance Department' },
+  { id: 6, name: 'Planning & Development' },
+  { id: 7, name: 'Public Works Department' },
+  { id: 8, name: 'Irrigation Department' }
+];
+
+// DC Inspection Report Data
+export interface DistrictInspectionData {
+  id: number;
+  name: string;
+  kpiData: Array<{
+    id: number;
+    kpi_id: number;
+    value: string | number;
+    kpi?: { id: number; name: string };
+    kpiColumn?: { id: number; name: string };
+  }>;
+}
+
+// Generate mock district inspection data
+export function generateMockDistrictInspectionData(): DistrictInspectionData[] {
+  const districts = districtNames.slice(0, 15); // Use first 15 districts
+  
+  return districts.map((districtName, index) => {
+    const kpiData: DistrictInspectionData['kpiData'] = [];
+    
+    // KPI IDs: 18 (Adultration), 19 (Spurious), 20 (Price Checking), 21 (Hoarding)
+    const kpiIds = [18, 19, 20, 21];
+    const columnNames = [
+      'Units Inspected',
+      'Fine Collected',
+      'Warnings Issued',
+      'FIR\'s Registered',
+      'Units Sealed',
+      'No of offences'
+    ];
+    
+    kpiIds.forEach((kpiId, kpiIndex) => {
+      // Each KPI has 6 columns - always generate all 6 for consistency
+      for (let colIndex = 0; colIndex < 6; colIndex++) {
+        kpiData.push({
+          id: index * 24 + kpiIndex * 6 + colIndex + 1,
+          kpi_id: kpiId,
+          value: faker.datatype.boolean({ probability: 0.8 }) 
+            ? faker.number.int({ min: 0, max: 500 }) 
+            : 0,
+          kpi: {
+            id: kpiId,
+            name: ['Adultration', 'Spurious', 'Price Checking', 'Hoarding'][kpiIndex]
+          },
+          kpiColumn: {
+            id: colIndex + 1,
+            name: columnNames[colIndex]
+          }
+        });
+      }
+    });
+    
+    return {
+      id: index + 1,
+      name: districtName,
+      kpiData
+    };
+  });
+}
