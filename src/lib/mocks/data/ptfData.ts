@@ -49,6 +49,21 @@ export interface PTFDepartmentRelationship {
   critically_delayed: number;
 }
 
+export interface PTFDistrictWiseReport {
+  department_id: number;
+  department: {
+    id: number;
+    name: string;
+  };
+  total: number;
+  pending: number;
+  open: number;
+  rejected: number;
+  closed: number;
+  critically_delayed: number;
+  on_target: number;
+}
+
 // Generate mock PTF departments with meeting minutes counts
 export function generateMockPTFDepartments(): PTFDepartment[] {
   // Filter main departments (exclude Admin, Data Entry, Department, and ID 177)
@@ -166,4 +181,41 @@ export function generateMockPTFDepartmentRelationships(): PTFDepartmentRelations
   });
 
   return relationships;
+}
+
+// Generate mock PTF district-wise report data
+export function generateMockPTFDistrictWiseReport(): PTFDistrictWiseReport[] {
+  const mainDepartments = mockDepartments.filter(
+    dept => dept.department_type_id === 1 && 
+    dept.id !== 177 &&
+    !['Admin', 'Data Entry', 'Department'].includes(dept.name)
+  );
+
+  return mainDepartments.map(dept => {
+    const total = faker.number.int({ min: 5, max: 150 });
+    const pending = faker.number.int({ min: 0, max: Math.floor(total * 0.3) });
+    const open = faker.number.int({ min: 0, max: Math.floor(total * 0.4) });
+    const rejected = faker.number.int({ min: 0, max: Math.floor(total * 0.1) });
+    const closed = faker.number.int({ min: 0, max: Math.floor(total * 0.4) });
+    
+    // On target: status = 1 (open) with timeline > today
+    const on_target = faker.number.int({ min: 0, max: Math.floor(open * 0.6) });
+    // Critically delayed: status = 1 (open) with timeline < today
+    const critically_delayed = Math.max(0, open - on_target);
+
+    return {
+      department_id: Number(dept.id),
+      department: {
+        id: Number(dept.id),
+        name: dept.name
+      },
+      total,
+      pending,
+      open,
+      rejected,
+      closed,
+      critically_delayed,
+      on_target
+    };
+  });
 }
