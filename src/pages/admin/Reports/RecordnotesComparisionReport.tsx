@@ -6,7 +6,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { generateMockRecordNotesUpdates, RecordNoteUpdateDepartment } from '../../../lib/mocks/data/recordnotesUpdates';
-import { mockDepartments } from '../../../lib/mocks/data/departments';
 
 // Mock SO users (role_id 3, name starts with "SO")
 interface SOUser {
@@ -153,7 +152,7 @@ export default function RecordnotesComparisionReport() {
             ordering: false,
             searching: false,
             autoWidth: false,
-            fnRowCallback: function(nRow: any, aData: any, iDisplayIndex: number) {
+            fnRowCallback: function(nRow: any, _aData: any, iDisplayIndex: number) {
               $('td:first', nRow).html(iDisplayIndex + 1);
               return nRow;
             }
@@ -176,7 +175,7 @@ export default function RecordnotesComparisionReport() {
             }],
             autoWidth: false,
             order: [[4, 'desc'], [2, 'desc']],
-            fnRowCallback: function(nRow: any, aData: any, iDisplayIndex: number) {
+            fnRowCallback: function(nRow: any, _aData: any, iDisplayIndex: number) {
               $('td:first', nRow).html(iDisplayIndex + 1);
               return nRow;
             }

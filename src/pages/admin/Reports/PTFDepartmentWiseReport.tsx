@@ -301,27 +301,27 @@ export default function PTFDepartmentWiseReport() {
                         <tr key={row.department_id}>
                           <td>{row.department.name}</td>
                           <td>
-                            <Link to={`/admin/ptf/report/list-issue?department_id=${row.department_id}&status=all`}>
+                            <Link to={`/admin/ptf/report/list-issue/${row.department_id}?status=all`}>
                               {row.total}
                             </Link>
                           </td>
                           <td>
-                            <Link to={`/admin/ptf/report/list-issue?department_id=${row.department_id}&status=all`}>
+                            <Link to={`/admin/ptf/report/list-issue/${row.department_id}?status=all`}>
                               {row.assigned}
                             </Link>
                           </td>
                           <td>
-                            <Link to={`/admin/ptf/report/list-issue?department_id=${row.department_id}&status=0`}>
+                            <Link to={`/admin/ptf/report/list-issue/${row.department_id}?status=0`}>
                               {row.open}
                             </Link>
                           </td>
                           <td>
-                            <Link to={`/admin/ptf/report/list-issue?department_id=${row.department_id}&initial_response=0`}>
+                            <Link to={`/admin/ptf/report/list-issue/${row.department_id}?initial_response=0`}>
                               {row.response_pending}
                             </Link>
                           </td>
                           <td>
-                            <Link to={`/admin/ptf/report/list-issue?department_id=${row.department_id}&initial_response=1`}>
+                            <Link to={`/admin/ptf/report/list-issue/${row.department_id}?initial_response=1`}>
                               {row.initial_response}
                             </Link>
                           </td>
@@ -378,32 +378,32 @@ export default function PTFDepartmentWiseReport() {
                           <td>{item.assignmentDept}</td>
                           <td>{item.issueDept}</td>
                           <td>
-                            <Link to={`/admin/ptf/report/list-issue?department_id=${item.firstIssue.assignment_department_id}&status=all&district=${item.firstIssue.issue_department_id}`}>
+                            <Link to={`/admin/ptf/report/list-issue/${item.firstIssue.assignment_department_id}?status=all&district=${item.firstIssue.issue_department_id}`}>
                               {item.totals.total}
                             </Link>
                           </td>
                           <td>
-                            <Link to={`/admin/ptf/report/list-issue?department_id=${item.firstIssue.assignment_department_id}&status=all&district=${item.firstIssue.issue_department_id}`}>
+                            <Link to={`/admin/ptf/report/list-issue/${item.firstIssue.assignment_department_id}?status=all&district=${item.firstIssue.issue_department_id}`}>
                               {item.totals.assigned}
                             </Link>
                           </td>
                           <td>
-                            <Link to={`/admin/ptf/report/list-issue?department_id=${item.firstIssue.assignment_department_id}&initial_response=1&district=${item.firstIssue.issue_department_id}`}>
+                            <Link to={`/admin/ptf/report/list-issue/${item.firstIssue.assignment_department_id}?initial_response=1&district=${item.firstIssue.issue_department_id}`}>
                               {item.totals.initial_response}
                             </Link>
                           </td>
                           <td>
-                            <Link to={`/admin/ptf/report/list-issue?department_id=${item.firstIssue.assignment_department_id}&initial_response=0&district=${item.firstIssue.issue_department_id}`}>
+                            <Link to={`/admin/ptf/report/list-issue/${item.firstIssue.assignment_department_id}?initial_response=0&district=${item.firstIssue.issue_department_id}`}>
                               {item.totals.response_pending}
                             </Link>
                           </td>
                           <td>
-                            <Link to={`/admin/ptf/report/list-issue?department_id=${item.firstIssue.assignment_department_id}&status=0&district=${item.firstIssue.issue_department_id}`}>
+                            <Link to={`/admin/ptf/report/list-issue/${item.firstIssue.assignment_department_id}?status=0&district=${item.firstIssue.issue_department_id}`}>
                               {item.totals.open}
                             </Link>
                           </td>
                           <td>
-                            <Link to={`/admin/ptf/report/list-issue?department_id=${item.firstIssue.assignment_department_id}&status=1&district=${item.firstIssue.issue_department_id}`}>
+                            <Link to={`/admin/ptf/report/list-issue/${item.firstIssue.assignment_department_id}?status=1&district=${item.firstIssue.issue_department_id}`}>
                               {item.totals.closed}
                             </Link>
                           </td>

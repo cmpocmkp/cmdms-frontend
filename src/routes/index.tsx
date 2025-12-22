@@ -170,6 +170,8 @@ const PTFDepartmentWiseReport = lazy(() => import('../pages/admin/Reports/PTFDep
 const PTFDistrictWiseReport = lazy(() => import('../pages/admin/Reports/PTFDistrictWiseReport'));
 const PTFDistrictDetailReport = lazy(() => import('../pages/admin/Reports/PTFDistrictDetailReport'));
 const PTFDistrictLatestReport = lazy(() => import('../pages/admin/Reports/PTFDistrictLatestReport'));
+const PTFMeetingsDetailReport = lazy(() => import('../pages/admin/Reports/PTFMeetingsDetailReport'));
+const PTFDepartmentWiseDetailReport = lazy(() => import('../pages/admin/Reports/PTFDepartmentWiseDetailReport'));
 const PTFIssueList = lazy(() => import('../pages/admin/PTF/PTFIssueList'));
 const PTFIssueDetail = lazy(() => import('../pages/admin/PTF/PTFIssueDetail'));
 const RecordnotesUpdatesReport = lazy(() => import('../pages/admin/Reports/RecordnotesUpdatesReport'));
@@ -863,6 +865,14 @@ export const router = createBrowserRouter([
       {
         path: 'ptfs/report-district-latest',
         element: withSuspense(PTFDistrictLatestReport),
+      },
+      {
+        path: 'report/ptf/detail/meetings/:deptId/:status',
+        element: withSuspense(PTFMeetingsDetailReport),
+      },
+      {
+        path: 'ptf/report/list-issue/:departmentId',
+        element: withSuspense(PTFDepartmentWiseDetailReport),
       },
       {
         path: 'ptf/list-issue-all',

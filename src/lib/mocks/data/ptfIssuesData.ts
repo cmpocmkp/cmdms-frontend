@@ -107,7 +107,7 @@ export function generateMockPTFIssues(status?: number | null, type?: string | nu
   // Generate base issues if not cached
   if (!cachedIssues) {
     cachedIssues = [];
-    const issueCount = 50; // Fixed count for consistent data
+    const issueCount = 80; // Increased count to ensure better data distribution
     
     const filteredDepartments = mockDepartments.filter(d => d.department_type_id === 1);
     
@@ -136,7 +136,26 @@ export function generateMockPTFIssues(status?: number | null, type?: string | nu
         .filter(d => suggestedDeptIds.includes(d.id))
         .map(d => ({ id: Number(d.id), name: d.name }));
       
-      const assignedDepts = faker.helpers.arrayElements(suggestedDepts, { min: 0, max: suggestedDepts.length });
+      // Ensure at least one assignment for most issues, distribute across departments
+      // This ensures the department-wise detail report has data to display
+      let assignedDepts: Array<{ id: number; name: string }> = [];
+      if (suggestedDepts.length > 0) {
+        // Use at least 1 assignment for 80% of issues to ensure data availability
+        const minAssignments = faker.datatype.boolean({ probability: 0.8 }) ? 1 : 0;
+        assignedDepts = faker.helpers.arrayElements(
+          suggestedDepts, 
+          { min: minAssignments, max: Math.min(suggestedDepts.length, 2) }
+        );
+      } else {
+        // If no suggested departments, assign to a random department from main departments
+        const mainDepts = mockDepartments
+          .filter(d => d.department_type_id === 1 && Number(d.id) !== Number(dept.id))
+          .slice(0, 10)
+          .map(d => ({ id: Number(d.id), name: d.name }));
+        if (mainDepts.length > 0) {
+          assignedDepts = faker.helpers.arrayElements(mainDepts, { min: 1, max: 1 });
+        }
+      }
       
       const statusTexts: Record<number, string> = {
         0: 'Pending',
