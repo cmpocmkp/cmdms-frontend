@@ -776,57 +776,6 @@ export function Sidebar() {
             </li>
           )}
           
-          {/* External Links - OUTSIDE Reports section */}
-          {(isAdminOrDataEntry() || user?.role_id === 3) && (
-            <>
-              {/* Good Governance Roadmap */}
-              {hasPermission('admin.good.governance.roadmap.link') && (
-                <li className="nav-item">
-                  <a 
-                    className="nav-link" 
-                    href="https://ipms.kpdata.gov.pk/guardian/users/bypass-login?rt=ggrm"
-                    id="loginLink"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <span className="menu-title">Good Governance<br /> Roadmap</span>
-                  </a>
-                </li>
-              )}
-              
-              {/* CM DSD Visit */}
-              {hasPermission('admin.cm.dsd.visit.link') && (
-                <li className="nav-item">
-                  <a 
-                    className="nav-link" 
-                    href="https://ipms.kpdata.gov.pk/guardian/users/bypass-login?rt=dsd"
-                    id="loginLink"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <span className="menu-title">CM DSD Visit</span>
-                  </a>
-                </li>
-              )}
-              
-              {/* Ekhteyar Aawam Ka */}
-              {hasPermission('admin.ekhtyar.awamka.link') && (
-                <li className="nav-item">
-                  <a 
-                    className="nav-link" 
-                    href="javascript:void(0)"
-                    id="loginLink"
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={(e) => e.preventDefault()}
-                  >
-                    <span className="menu-title">Ekhteyar Aawam Ka</span>
-                  </a>
-                </li>
-              )}
-            </>
-          )}
-          
         </ul>
       </nav>
     </>
