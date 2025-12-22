@@ -42,6 +42,7 @@ export interface PTFHistory {
     id: number;
     name: string;
   };
+  type?: number; // 0: Initial Response, 1: Final Response, 2: Comment
   type_text: string;
   remarks: string;
   attachments: string[] | null;
@@ -165,23 +166,27 @@ export function generateMockPTFIssues(status?: number | null, type?: string | nu
         suggestedDepartments: suggestedDepts,
         assignedTo: assignedDepts.map((dept, idx) => {
           const historyCount = faker.number.int({ min: 0, max: 3 });
-          const histories = Array.from({ length: historyCount }, (_, histIdx) => ({
-            id: histIdx + 1,
-            department: {
-              id: dept.id,
-              name: dept.name
-            },
-            userCreatedBy: {
-              id: faker.number.int({ min: 1, max: 10 }),
-              name: faker.person.fullName()
-            },
-            type_text: histIdx === 0 ? 'Initial Response' : 'Final Response',
-            remarks: faker.lorem.paragraph({ min: 1, max: 2 }),
-            attachments: faker.datatype.boolean({ probability: 0.2 })
-              ? [faker.system.fileName({ extensionCount: 1 })]
-              : null,
-            created_at: faker.date.past().toISOString()
-          })).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          const histories = Array.from({ length: historyCount }, (_, histIdx) => {
+            const type = histIdx === 0 ? 0 : 1; // 0: Initial, 1: Final
+            return {
+              id: histIdx + 1,
+              department: {
+                id: dept.id,
+                name: dept.name
+              },
+              userCreatedBy: {
+                id: faker.number.int({ min: 1, max: 10 }),
+                name: faker.person.fullName()
+              },
+              type: type,
+              type_text: type === 0 ? 'Initial Response' : 'Final Response',
+              remarks: faker.lorem.paragraph({ min: 1, max: 2 }),
+              attachments: faker.datatype.boolean({ probability: 0.2 })
+                ? [faker.system.fileName({ extensionCount: 1 })]
+                : null,
+              created_at: faker.date.past().toISOString()
+            };
+          }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
           return {
             id: idx + 1,
