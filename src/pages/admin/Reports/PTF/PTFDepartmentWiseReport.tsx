@@ -11,7 +11,7 @@ import {
   generateMockPTFDepartmentRelationships,
   PTFDepartmentAssignment,
   PTFDepartmentRelationship
-} from '../../../lib/mocks/data/ptfData';
+} from '../../../../lib/mocks/data/ptfData';
 
 export default function PTFDepartmentWiseReport() {
   const [loading, setLoading] = useState(true);

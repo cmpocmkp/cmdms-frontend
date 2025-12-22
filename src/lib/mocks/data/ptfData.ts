@@ -145,7 +145,7 @@ export function generateMockPTFDepartmentRelationships(): PTFDepartmentRelations
   const relationships: PTFDepartmentRelationship[] = [];
 
   // Create relationships between departments
-  mainDepartments.forEach((assignmentDept, idx) => {
+  mainDepartments.forEach((assignmentDept) => {
     // Each assignment department has relationships with 2-4 issue departments
     const numRelationships = faker.number.int({ min: 2, max: 4 });
     const selectedIssueDepts = faker.helpers.arrayElements(

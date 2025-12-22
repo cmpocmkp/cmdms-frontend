@@ -6,7 +6,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Printer } from 'lucide-react';
 import { generateMockPTFIssues, PTFIssue } from '../../../lib/mocks/data/ptfIssuesData';
-import { mockDepartments } from '../../../lib/mocks/data/departments';
 
 export default function PTFDistrictLatestReport() {
   const [loading, setLoading] = useState(true);

@@ -11,7 +11,7 @@ interface MeetingCard {
   title: string;
   count: number;
   route: string;
-  icon: React.ComponentType<{ size?: number; color?: string }>;
+  icon: React.ComponentType<any>;
   iconColor: string;
 }
 
