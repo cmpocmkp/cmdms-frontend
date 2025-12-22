@@ -1,18 +1,200 @@
 /**
  * PTF Module - Department Wise Report
- * EXACT replica of admin/report/ptf/department-wise
+ * EXACT replica of admin/ptf/department_wise_report.blade.php from old CMDMS
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { Link } from 'react-router-dom';
+import { Target, AlertTriangle, CheckCircle } from 'lucide-react';
+import {
+  generateMockPTFDepartmentAssignments,
+  generateMockPTFDepartmentRelationships,
+  PTFDepartmentAssignment,
+  PTFDepartmentRelationship
+} from '../../../lib/mocks/data/ptfData';
 
 export default function PTFDepartmentWiseReport() {
   const [loading, setLoading] = useState(true);
-  const [data, _setData] = useState<any[]>([]);
+  const [assignments] = useState<PTFDepartmentAssignment[]>(() => generateMockPTFDepartmentAssignments());
+  const [relationships] = useState<PTFDepartmentRelationship[]>(() => generateMockPTFDepartmentRelationships());
+  
+  const departmentsTableRef = useRef<HTMLTableElement>(null);
+  const departmentsDataTableRef = useRef<any>(null);
+  const relationsTableRef = useRef<HTMLTableElement>(null);
+  const relationsDataTableRef = useRef<any>(null);
 
   useEffect(() => {
     // TODO: Replace with actual API call
     setLoading(false);
   }, []);
+
+  // Initialize DataTables
+  useEffect(() => {
+    const loadScript = (src: string): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        if (document.querySelector(`script[src="${src}"]`)) {
+          resolve();
+          return;
+        }
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+        document.head.appendChild(script);
+      });
+    };
+
+    const initializeDataTables = async () => {
+      try {
+        // Load jQuery first
+        if (!(window as any).jQuery) {
+          await loadScript('https://code.jquery.com/jquery-3.7.1.min.js');
+        }
+
+        // Load DataTables
+        await loadScript('https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js');
+
+        // Load DataTables CSS
+        if (!document.querySelector('link[href*="jquery.dataTables"]')) {
+          const link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = 'https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css';
+          document.head.appendChild(link);
+        }
+
+        const $ = (window as any).jQuery;
+
+        // Destroy existing DataTables if they exist
+        if (departmentsDataTableRef.current) {
+          departmentsDataTableRef.current.destroy();
+        }
+        if (relationsDataTableRef.current) {
+          relationsDataTableRef.current.destroy();
+        }
+
+        // Initialize departments table
+        if (departmentsTableRef.current && assignments.length > 0) {
+          departmentsDataTableRef.current = $(departmentsTableRef.current).DataTable({
+            pageLength: 100,
+            ordering: true
+          });
+        }
+
+        // Initialize relationships table
+        if (relationsTableRef.current && relationships.length > 0) {
+          relationsDataTableRef.current = $(relationsTableRef.current).DataTable({
+            pageLength: 100,
+            ordering: true,
+            order: [[0, 'asc'], [1, 'asc']]
+          });
+        }
+      } catch (error) {
+        console.error('Error initializing DataTables:', error);
+      }
+    };
+
+    if (!loading) {
+      const timer = setTimeout(() => {
+        initializeDataTables();
+      }, 100);
+
+      return () => {
+        clearTimeout(timer);
+        if (departmentsDataTableRef.current) {
+          try {
+            departmentsDataTableRef.current.destroy();
+          } catch (e) {
+            // Ignore destroy errors
+          }
+        }
+        if (relationsDataTableRef.current) {
+          try {
+            relationsDataTableRef.current.destroy();
+          } catch (e) {
+            // Ignore destroy errors
+          }
+        }
+      };
+    }
+  }, [loading, assignments.length, relationships.length]);
+
+  // Calculate summary totals
+  const summaryTotals = useMemo(() => {
+    return {
+      on_target: assignments.reduce((sum, item) => sum + item.on_target, 0),
+      critically_delayed: assignments.reduce((sum, item) => sum + item.critically_delayed, 0),
+      closed: assignments.reduce((sum, item) => sum + item.closed, 0)
+    };
+  }, [assignments]);
+
+  // Group and flatten relationships for table rendering
+  const flattenedRelationships = useMemo(() => {
+    const groupedByAssignment = new Map<string, PTFDepartmentRelationship[]>();
+    
+    // First group by assignment department
+    relationships.forEach(rel => {
+      const key = rel.assignment_department_name;
+      if (!groupedByAssignment.has(key)) {
+        groupedByAssignment.set(key, []);
+      }
+      groupedByAssignment.get(key)!.push(rel);
+    });
+    
+    // Then group by issue department and flatten
+    const result: Array<{
+      assignmentDept: string;
+      issueDept: string;
+      totals: {
+        total: number;
+        assigned: number;
+        initial_response: number;
+        response_pending: number;
+        open: number;
+        closed: number;
+        on_target: number;
+        critically_delayed: number;
+      };
+      firstIssue: PTFDepartmentRelationship;
+    }> = [];
+    
+    groupedByAssignment.forEach((deptIssues, assignmentDept) => {
+      const groupedByIssue = new Map<string, PTFDepartmentRelationship[]>();
+      deptIssues.forEach(rel => {
+        const key = rel.issue_department_name;
+        if (!groupedByIssue.has(key)) {
+          groupedByIssue.set(key, []);
+        }
+        groupedByIssue.get(key)!.push(rel);
+      });
+      
+      groupedByIssue.forEach((deptIssuesList, issueDept) => {
+        const firstIssue = deptIssuesList[0];
+        const totals = deptIssuesList.reduce((acc, item) => ({
+          total: acc.total + item.total,
+          assigned: acc.assigned + item.assigned,
+          initial_response: acc.initial_response + item.initial_response,
+          response_pending: acc.response_pending + item.response_pending,
+          open: acc.open + item.open,
+          closed: acc.closed + item.closed,
+          on_target: acc.on_target + item.on_target,
+          critically_delayed: acc.critically_delayed + item.critically_delayed
+        }), {
+          total: 0,
+          assigned: 0,
+          initial_response: 0,
+          response_pending: 0,
+          open: 0,
+          closed: 0,
+          on_target: 0,
+          critically_delayed: 0
+        });
+        
+        result.push({ assignmentDept, issueDept, totals, firstIssue });
+      });
+    });
+    
+    return result;
+  }, [relationships]);
 
   if (loading) {
     return <div className="text-center p-5">Loading...</div>;
@@ -20,51 +202,225 @@ export default function PTFDepartmentWiseReport() {
 
   return (
     <div className="content-wrapper">
-      <div className="card">
-        <div className="card-body">
-          <center>
-            <h3>PTF Department Wise Report</h3>
-            <div className="row mt-4">
-              <div className="col-12">
-                <div className="table-responsive">
-                  <table className="table table-striped table-bordered">
-                    <thead style={{ background: 'rgb(37, 136, 95)', color: 'white' }}>
-                      <tr>
-                        <th>S#</th>
-                        <th>Department</th>
-                        <th>Total Decisions</th>
-                        <th>Completed</th>
-                        <th>On Target</th>
-                        <th>On Going</th>
-                        <th>Off Target</th>
-                        <th>Overdue</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.length === 0 ? (
-                        <tr>
-                          <td colSpan={8} className="text-center">No data available</td>
+      <style>{`
+        .table img {
+          border-radius: 0%;
+        }
+        .table th img {
+          width: 20px;
+        }
+        .summary-icon {
+          width: 20px;
+          height: 20px;
+          display: inline-block;
+          margin-right: 8px;
+          vertical-align: middle;
+        }
+      `}</style>
+      
+      {/* Summary Section */}
+      <div className="row">
+        <div className="col-md-12">
+          <div className="card">
+            <div className="card-body">
+              <table className="table">
+                <tbody>
+                  <tr>
+                    <td>
+                      <Target className="summary-icon" style={{ color: '#17c653' }} size={20} />
+                      On Target
+                    </td>
+                    <td>
+                      <Link to="/admin/ptf/list-issue-all?status=1&type=on">
+                        {summaryTotals.on_target}
+                      </Link>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <AlertTriangle className="summary-icon" style={{ color: '#E74039' }} size={20} />
+                      Critically Delayed
+                    </td>
+                    <td>
+                      <Link to="/admin/ptf/list-issue-all?status=1&type=off">
+                        {summaryTotals.critically_delayed}
+                      </Link>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <CheckCircle className="summary-icon" style={{ color: '#0E8160' }} size={20} />
+                      Closed
+                    </td>
+                    <td>
+                      <Link to="/admin/ptf/list-issue-all?status=3">
+                        {summaryTotals.closed}
+                      </Link>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Department-wise PTF Assignment Report */}
+      <div className="row mt-4">
+        <div className="col-md-12">
+          <div className="card">
+            <div className="card-body">
+              <h4 className="card-title">Department-wise PTF Assignment Report</h4>
+              <div className="table-responsive">
+                <table className="table table-striped" id="table_departments" ref={departmentsTableRef}>
+                  <thead>
+                    <tr>
+                      <th>Department</th>
+                      <th>Total</th>
+                      <th>Assigned</th>
+                      <th>Open</th>
+                      <th>Response Pending</th>
+                      <th>Initial Responded</th>
+                      <th>
+                        <CheckCircle size={20} style={{ color: '#0E8160', display: 'inline-block', verticalAlign: 'middle' }} />
+                        {' '}Closed
+                      </th>
+                      <th>
+                        <Target size={20} style={{ color: '#17c653', display: 'inline-block', verticalAlign: 'middle' }} />
+                        {' '}On Target
+                      </th>
+                      <th>
+                        <AlertTriangle size={20} style={{ color: '#E74039', display: 'inline-block', verticalAlign: 'middle' }} />
+                        {' '}Critically Delayed
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {assignments.length > 0 ? (
+                      assignments.map((row) => (
+                        <tr key={row.department_id}>
+                          <td>{row.department.name}</td>
+                          <td>
+                            <Link to={`/admin/ptf/report/list-issue?department_id=${row.department_id}&status=all`}>
+                              {row.total}
+                            </Link>
+                          </td>
+                          <td>
+                            <Link to={`/admin/ptf/report/list-issue?department_id=${row.department_id}&status=all`}>
+                              {row.assigned}
+                            </Link>
+                          </td>
+                          <td>
+                            <Link to={`/admin/ptf/report/list-issue?department_id=${row.department_id}&status=0`}>
+                              {row.open}
+                            </Link>
+                          </td>
+                          <td>
+                            <Link to={`/admin/ptf/report/list-issue?department_id=${row.department_id}&initial_response=0`}>
+                              {row.response_pending}
+                            </Link>
+                          </td>
+                          <td>
+                            <Link to={`/admin/ptf/report/list-issue?department_id=${row.department_id}&initial_response=1`}>
+                              {row.initial_response}
+                            </Link>
+                          </td>
+                          <td>{row.closed}</td>
+                          <td>{row.on_target}</td>
+                          <td>{row.critically_delayed}</td>
                         </tr>
-                      ) : (
-                        data.map((item, index) => (
-                          <tr key={index}>
-                            <td>{index + 1}</td>
-                            <td>{item.department_name}</td>
-                            <td>{item.total_decisions || 0}</td>
-                            <td>{item.completed || 0}</td>
-                            <td>{item.on_target || 0}</td>
-                            <td>{item.on_going || 0}</td>
-                            <td>{item.off_target || 0}</td>
-                            <td>{item.overdue || 0}</td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={9} className="text-center">No data available</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
-          </center>
+          </div>
+        </div>
+      </div>
+
+      {/* Department Assignment Relationships */}
+      <div className="row mt-4">
+        <div className="col-md-12">
+          <div className="card">
+            <div className="card-body">
+              <h4 className="card-title">Department Assignment Relationships</h4>
+              <div className="table-responsive">
+                <table className="table table-striped" id="table_department_relations" ref={relationsTableRef}>
+                  <thead>
+                    <tr>
+                      <th>Assignment Department</th>
+                      <th>Issue Department</th>
+                      <th>Total</th>
+                      <th>Assigned</th>
+                      <th>Initial Response</th>
+                      <th>Response Pending</th>
+                      <th>Open</th>
+                      <th>Closed</th>
+                      <th>
+                        <Target size={20} style={{ color: '#17c653', display: 'inline-block', verticalAlign: 'middle' }} />
+                        {' '}On Target
+                      </th>
+                      <th>
+                        <AlertTriangle size={20} style={{ color: '#E74039', display: 'inline-block', verticalAlign: 'middle' }} />
+                        {' '}Critically Delayed
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {flattenedRelationships.length > 0 ? (
+                      flattenedRelationships.map((item, index) => (
+                        <tr key={`${item.firstIssue.assignment_department_id}-${item.firstIssue.issue_department_id}-${index}`}>
+                          <td>{item.assignmentDept}</td>
+                          <td>{item.issueDept}</td>
+                          <td>
+                            <Link to={`/admin/ptf/report/list-issue?department_id=${item.firstIssue.assignment_department_id}&status=all&district=${item.firstIssue.issue_department_id}`}>
+                              {item.totals.total}
+                            </Link>
+                          </td>
+                          <td>
+                            <Link to={`/admin/ptf/report/list-issue?department_id=${item.firstIssue.assignment_department_id}&status=all&district=${item.firstIssue.issue_department_id}`}>
+                              {item.totals.assigned}
+                            </Link>
+                          </td>
+                          <td>
+                            <Link to={`/admin/ptf/report/list-issue?department_id=${item.firstIssue.assignment_department_id}&initial_response=1&district=${item.firstIssue.issue_department_id}`}>
+                              {item.totals.initial_response}
+                            </Link>
+                          </td>
+                          <td>
+                            <Link to={`/admin/ptf/report/list-issue?department_id=${item.firstIssue.assignment_department_id}&initial_response=0&district=${item.firstIssue.issue_department_id}`}>
+                              {item.totals.response_pending}
+                            </Link>
+                          </td>
+                          <td>
+                            <Link to={`/admin/ptf/report/list-issue?department_id=${item.firstIssue.assignment_department_id}&status=0&district=${item.firstIssue.issue_department_id}`}>
+                              {item.totals.open}
+                            </Link>
+                          </td>
+                          <td>
+                            <Link to={`/admin/ptf/report/list-issue?department_id=${item.firstIssue.assignment_department_id}&status=1&district=${item.firstIssue.issue_department_id}`}>
+                              {item.totals.closed}
+                            </Link>
+                          </td>
+                          <td>{item.totals.on_target}</td>
+                          <td>{item.totals.critically_delayed}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={10} className="text-center">No data available</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

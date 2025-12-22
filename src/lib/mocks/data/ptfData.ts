@@ -18,6 +18,37 @@ export interface PTFDepartment {
   off_target_other: number;
 }
 
+export interface PTFDepartmentAssignment {
+  department_id: number;
+  department: {
+    id: number;
+    name: string;
+  };
+  total: number;
+  assigned: number;
+  open: number;
+  response_pending: number;
+  initial_response: number;
+  closed: number;
+  on_target: number;
+  critically_delayed: number;
+}
+
+export interface PTFDepartmentRelationship {
+  assignment_department_id: number;
+  assignment_department_name: string;
+  issue_department_id: number;
+  issue_department_name: string;
+  total: number;
+  assigned: number;
+  initial_response: number;
+  response_pending: number;
+  open: number;
+  closed: number;
+  on_target: number;
+  critically_delayed: number;
+}
+
 // Generate mock PTF departments with meeting minutes counts
 export function generateMockPTFDepartments(): PTFDepartment[] {
   // Filter main departments (exclude Admin, Data Entry, Department, and ID 177)
@@ -50,4 +81,89 @@ export function generateMockPTFDepartments(): PTFDepartment[] {
       off_target_other
     };
   });
+}
+
+// Generate mock PTF department assignments for department-wise report
+export function generateMockPTFDepartmentAssignments(): PTFDepartmentAssignment[] {
+  const mainDepartments = mockDepartments.filter(
+    dept => dept.department_type_id === 1 && 
+    dept.id !== 177 &&
+    !['Admin', 'Data Entry', 'Department'].includes(dept.name)
+  );
+
+  return mainDepartments.map(dept => {
+    const total = faker.number.int({ min: 5, max: 100 });
+    const assigned = total;
+    const open = faker.number.int({ min: 0, max: Math.floor(total * 0.6) });
+    const closed = faker.number.int({ min: 0, max: Math.floor(total * 0.4) });
+    const initial_response = faker.number.int({ min: 0, max: Math.floor(total * 0.7) });
+    const response_pending = total - initial_response;
+    const on_target = faker.number.int({ min: 0, max: Math.floor(open * 0.6) });
+    const critically_delayed = open - on_target;
+
+    return {
+      department_id: Number(dept.id),
+      department: {
+        id: Number(dept.id),
+        name: dept.name
+      },
+      total,
+      assigned,
+      open,
+      response_pending,
+      initial_response,
+      closed,
+      on_target,
+      critically_delayed
+    };
+  });
+}
+
+// Generate mock PTF department relationships for department-wise report
+export function generateMockPTFDepartmentRelationships(): PTFDepartmentRelationship[] {
+  const mainDepartments = mockDepartments.filter(
+    dept => dept.department_type_id === 1 && 
+    dept.id !== 177 &&
+    !['Admin', 'Data Entry', 'Department'].includes(dept.name)
+  ).slice(0, 15); // Limit to first 15 for manageable data
+
+  const relationships: PTFDepartmentRelationship[] = [];
+
+  // Create relationships between departments
+  mainDepartments.forEach((assignmentDept, idx) => {
+    // Each assignment department has relationships with 2-4 issue departments
+    const numRelationships = faker.number.int({ min: 2, max: 4 });
+    const selectedIssueDepts = faker.helpers.arrayElements(
+      mainDepartments.filter(d => d.id !== assignmentDept.id),
+      numRelationships
+    );
+
+    selectedIssueDepts.forEach(issueDept => {
+      const total = faker.number.int({ min: 1, max: 30 });
+      const assigned = total;
+      const initial_response = faker.number.int({ min: 0, max: Math.floor(total * 0.7) });
+      const response_pending = total - initial_response;
+      const open = faker.number.int({ min: 0, max: Math.floor(total * 0.6) });
+      const closed = faker.number.int({ min: 0, max: Math.floor(total * 0.4) });
+      const on_target = faker.number.int({ min: 0, max: Math.floor(open * 0.6) });
+      const critically_delayed = open - on_target;
+
+      relationships.push({
+        assignment_department_id: Number(assignmentDept.id),
+        assignment_department_name: assignmentDept.name,
+        issue_department_id: Number(issueDept.id),
+        issue_department_name: issueDept.name,
+        total,
+        assigned,
+        initial_response,
+        response_pending,
+        open,
+        closed,
+        on_target,
+        critically_delayed
+      });
+    });
+  });
+
+  return relationships;
 }
