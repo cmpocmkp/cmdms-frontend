@@ -173,6 +173,7 @@ const PTFDistrictLatestReport = lazy(() => import('../pages/admin/Reports/PTFDis
 const PTFIssueList = lazy(() => import('../pages/admin/PTF/PTFIssueList'));
 const PTFIssueDetail = lazy(() => import('../pages/admin/PTF/PTFIssueDetail'));
 const RecordnotesUpdatesReport = lazy(() => import('../pages/admin/Reports/RecordnotesUpdatesReport'));
+const RecordnotesUpdatesDetailReport = lazy(() => import('../pages/admin/Reports/RecordnotesUpdatesDetailReport'));
 const RecordnotesComparisionReport = lazy(() => import('../pages/admin/Reports/RecordnotesComparisionReport'));
 
 // Khushhal Khyber Pakhtunkhwa
@@ -874,6 +875,10 @@ export const router = createBrowserRouter([
       {
         path: 'report/recordnotes-updates',
         element: withSuspense(RecordnotesUpdatesReport),
+      },
+      {
+        path: 'report/recordnotes-updates-detail/:deptId/:status',
+        element: withSuspense(RecordnotesUpdatesDetailReport),
       },
       {
         path: 'report/recordnotes-comparision',
