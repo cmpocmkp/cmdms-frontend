@@ -29,6 +29,7 @@ export interface PTFAssignment {
     created_at: string;
     attachments: string[] | null;
   };
+  histories?: PTFHistory[];
 }
 
 export interface PTFHistory {
@@ -162,19 +163,39 @@ export function generateMockPTFIssues(status?: number | null, type?: string | nu
         priority: faker.helpers.arrayElement(mockPriorities),
         source: faker.helpers.arrayElement(mockSources),
         suggestedDepartments: suggestedDepts,
-        assignedTo: assignedDepts.map((dept, idx) => ({
-          id: idx + 1,
-          department_id: dept.id,
-          department: dept,
-          latestResponse: faker.datatype.boolean({ probability: 0.6 }) ? {
-            remarks: faker.lorem.sentence(),
-            type_text: faker.helpers.arrayElement(['Initial Response', 'Final Response']),
-            created_at: faker.date.past().toISOString(),
-            attachments: faker.datatype.boolean({ probability: 0.3 }) 
+        assignedTo: assignedDepts.map((dept, idx) => {
+          const historyCount = faker.number.int({ min: 0, max: 3 });
+          const histories = Array.from({ length: historyCount }, (_, histIdx) => ({
+            id: histIdx + 1,
+            department: {
+              id: dept.id,
+              name: dept.name
+            },
+            userCreatedBy: {
+              id: faker.number.int({ min: 1, max: 10 }),
+              name: faker.person.fullName()
+            },
+            type_text: histIdx === 0 ? 'Initial Response' : 'Final Response',
+            remarks: faker.lorem.paragraph({ min: 1, max: 2 }),
+            attachments: faker.datatype.boolean({ probability: 0.2 })
               ? [faker.system.fileName({ extensionCount: 1 })]
-              : null
-          } : undefined
-        })),
+              : null,
+            created_at: faker.date.past().toISOString()
+          })).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+          return {
+            id: idx + 1,
+            department_id: dept.id,
+            department: dept,
+            latestResponse: histories.length > 0 ? {
+              remarks: histories[0].remarks,
+              type_text: histories[0].type_text,
+              created_at: histories[0].created_at,
+              attachments: histories[0].attachments
+            } : undefined,
+            histories: histories
+          };
+        }),
         created_by: faker.number.int({ min: 1, max: 10 }),
         userCreatedBy: {
           id: faker.number.int({ min: 1, max: 10 }),
