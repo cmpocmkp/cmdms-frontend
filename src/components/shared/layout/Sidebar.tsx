@@ -49,9 +49,6 @@ export function Sidebar() {
     return true; // For now, allow all (mock)
   };
   
-  const isAdmin = () => user?.role_id === 1;
-  const isDataEntry = () => user?.role?.role_name === 'data-entry';
-  const isAdminOrDataEntry = () => isAdmin() || isDataEntry();
   
   return (
     <>
