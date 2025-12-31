@@ -238,6 +238,11 @@ const DepartmentPTIsList = lazy(() => import('../pages/department/PTIsList'));
 const DepartmentPTIsTaskReplies = lazy(() => import('../pages/department/DepartmentPTIsTaskReplies'));
 const DepartmentSummariesList = lazy(() => import('../pages/department/SummariesList'));
 
+// CS (Chief Secretary) modules
+const CSDashboard = lazy(() => import('../pages/cs/Dashboard'));
+const CSRecordNotesReport = lazy(() => import('../pages/cs/CSRecordNotesReport'));
+const CSRecordNotesDetail = lazy(() => import('../pages/cs/CSRecordNotesDetail'));
+
 // Admin layout
 const AdminLayout = lazy(() => import('../components/shared/layout/AdminLayout'));
 const DepartmentLayout = lazy(() => import('../components/shared/layout/DepartmentLayout'));
@@ -1046,6 +1051,30 @@ export const router = createBrowserRouter([
       {
         path: 'summaries',
         element: withSuspense(DepartmentSummariesList),
+      },
+    ],
+  },
+  
+  // CS (Chief Secretary) routes
+  {
+    path: '/cs',
+    element: (
+      <ProtectedRoute allowedRoles={[UserRole.CS]}>
+        {withSuspense(AdminLayout)}
+      </ProtectedRoute>
+    ),
+    children: [
+      {
+        path: 'dashboard',
+        element: withSuspense(CSDashboard),
+      },
+      {
+        path: 'report/all-record-notes',
+        element: withSuspense(CSRecordNotesReport),
+      },
+      {
+        path: 'report/over-due-detail/:deptid/:stat',
+        element: withSuspense(CSRecordNotesDetail),
       },
     ],
   },

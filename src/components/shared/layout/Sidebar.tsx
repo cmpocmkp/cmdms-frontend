@@ -42,9 +42,12 @@ export function Sidebar() {
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
   
   // Permission and role helpers
-  const hasPermission = (_permission: string) => {
+  const hasPermission = (permission: string) => {
     if (user?.role_id === 1) return true; // Admin has all
-    if (user?.role_id === 5) return true; // CS has permissions
+    // CS users (role_id === 5) should ONLY have access to cs.csdashboard permission
+    if (user?.role_id === 5) {
+      return permission === 'cs.csdashboard'; // CS users only have dashboard access
+    }
     if (user?.role?.role_name === 'data-entry') return true; // Data Entry has permissions
     return true; // For now, allow all (mock)
   };
@@ -120,8 +123,8 @@ export function Sidebar() {
             </li>
           )}
           
-          {/* Admin Menu */}
-          {(hasPermission('admin.users.list') || 
+          {/* Admin Menu - CS users (role_id === 5) should NOT see this */}
+          {user?.role_id !== 5 && (hasPermission('admin.users.list') || 
             hasPermission('admin.department.index') ||
             hasPermission('admin.recordnotes.departments') ||
             hasPermission('admin.announcements.list') ||
@@ -466,8 +469,8 @@ export function Sidebar() {
             </li>
           )}
           
-          {/* Reports Menu */}
-          {hasPermission('admin.report.department-wise') && (
+          {/* Reports Menu - CS users (role_id === 5) should NOT see this */}
+          {user?.role_id !== 5 && hasPermission('admin.report.department-wise') && (
             <li className={cn(
               "nav-item",
               (isActive('/admin/report') || isActive('/admin/ptfs')) && 'active'
