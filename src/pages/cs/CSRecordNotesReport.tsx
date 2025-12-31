@@ -11,8 +11,8 @@ import type { CSRecordNoteDepartment } from '../../lib/mocks/data/csRecordNotes'
 
 declare global {
   interface Window {
-    $: JQueryStatic;
-    jQuery: JQueryStatic;
+    $: any;
+    jQuery: any;
   }
 }
 
@@ -80,7 +80,7 @@ export default function CSRecordNotesReport() {
         // DOM layout: l=length, f=filter (on same line), r=processing, t=table, i=info, p=pagination
         dom: 'lfrtip',
         // Auto-number S.NO column (fnRowCallback matches old CMDMS exactly)
-        fnRowCallback: function(nRow: any, aData: any, iDisplayIndex: number) {
+        fnRowCallback: function(nRow: any, _aData: any, iDisplayIndex: number) {
           window.$('td:first', nRow).html((iDisplayIndex + 1).toString());
           return nRow;
         }
@@ -304,7 +304,7 @@ export default function CSRecordNotesReport() {
                   </thead>
                   <tbody>
                     {departments.length > 0 ? (
-                      departments.map((dept, index) => {
+                      departments.map((dept) => {
                         const overDue = calculateOverdueCount(dept);
                         return (
                           <tr key={dept.id}>

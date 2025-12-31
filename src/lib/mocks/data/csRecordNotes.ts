@@ -51,7 +51,7 @@ export function generateMockCSRecordNotes(): CSRecordNoteDepartment[] {
 
   // Filter departments: type 1 (main departments), exclude 44, 45, 46
   const filteredDepartments = mockDepartments.filter(
-    dept => dept.department_type_id === 1 && ![44, 45, 46].includes(dept.id)
+    dept => dept.department_type_id === 1 && ![44, 45, 46].includes(Number(dept.id))
   );
 
   cachedCSRecordNotes = filteredDepartments.map(dept => {
