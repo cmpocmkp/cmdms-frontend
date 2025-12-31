@@ -48,6 +48,10 @@ export function Sidebar() {
     if (user?.role_id === 5) {
       return permission === 'cs.csdashboard'; // CS users only have dashboard access
     }
+    // CM users (role_id === 4) have access to most admin permissions (same as Admin and Data Entry in old CMDMS)
+    if (user?.role_id === 4) {
+      return true; // CM users have access to all admin modules (permission-based filtering will be added later)
+    }
     if (user?.role?.role_name === 'data-entry') return true; // Data Entry has permissions
     return true; // For now, allow all (mock)
   };

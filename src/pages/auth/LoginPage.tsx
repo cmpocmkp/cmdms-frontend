@@ -42,13 +42,15 @@ export default function LoginPage() {
     
     // Redirect based on role
     if (user?.role_id === 1) {
-      navigate('/admin/dashboard');
+      navigate('/admin/dashboard'); // Admin
+    } else if (user?.role_id === 4) {
+      navigate('/admin/dashboard'); // CM users use admin dashboard
     } else if (user?.role_id === 5) {
-      navigate('/cs/dashboard');
+      navigate('/cs/dashboard'); // CS users
     } else if (user?.role_id === 2) {
-      navigate('/department/dashboard');
+      navigate('/department/dashboard'); // Department users
     } else {
-      navigate('/admin/dashboard'); // Default
+      navigate('/admin/dashboard'); // Default (includes Data Entry)
     }
   };
 
