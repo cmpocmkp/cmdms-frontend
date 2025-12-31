@@ -43,6 +43,8 @@ export default function LoginPage() {
     // Redirect based on role
     if (user?.role_id === 1) {
       navigate('/admin/dashboard'); // Admin
+    } else if (user?.role_id === 3) {
+      navigate('/admin/dashboard'); // Data Entry users use admin dashboard
     } else if (user?.role_id === 4) {
       navigate('/admin/dashboard'); // CM users use admin dashboard
     } else if (user?.role_id === 5) {
@@ -50,7 +52,7 @@ export default function LoginPage() {
     } else if (user?.role_id === 2) {
       navigate('/department/dashboard'); // Department users
     } else {
-      navigate('/admin/dashboard'); // Default (includes Data Entry)
+      navigate('/admin/dashboard'); // Default fallback
     }
   };
 

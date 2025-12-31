@@ -279,11 +279,11 @@ export const router = createBrowserRouter([
     element: <Navigate to="/admin/report/department-wise-dashboard" replace />,
   },
   
-  // Admin routes
+  // Admin routes (Admin, CM, CS, and Data Entry users)
   {
     path: '/admin',
     element: (
-      <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CM, UserRole.CS]}>
+      <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CM, UserRole.CS, UserRole.DATA_ENTRY]}>
         {withSuspense(AdminLayout)}
       </ProtectedRoute>
     ),
