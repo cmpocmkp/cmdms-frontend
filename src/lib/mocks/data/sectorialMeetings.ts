@@ -40,6 +40,7 @@ export interface AgendaPoint {
   responsibility?: string;
   departments: AgendaPointDepartment[];
   timeline?: string;
+  status?: number; // DecisionStatus enum value (1: Completed, 2: On Target, 3: Overdue, 4: Off Target, etc.)
   is_archived?: boolean;
   scheme_id?: number;
   attachments?: string[];
@@ -83,7 +84,8 @@ const statusMapping: Record<string, { label: string; badge: string }> = {
 // Generate mock agenda points
 export const mockAgendaPoints: AgendaPoint[] = Array.from({ length: 200 }, (_, index) => {
   const deptCount = faker.number.int({ min: 1, max: 4 });
-  const statuses = ['Completed', 'On Target', 'Overdue', 'Off Target', 'Ongoing'];
+  const statusValues = [1, 2, 3, 4]; // Completed, On Target, Overdue, Off Target
+  const statusLabels = ['Completed', 'On Target', 'Overdue', 'Off Target'];
   
   return {
     id: index + 1,
@@ -91,13 +93,16 @@ export const mockAgendaPoints: AgendaPoint[] = Array.from({ length: 200 }, (_, i
     item: faker.lorem.sentence(),
     decision: faker.lorem.paragraph(),
     comments: faker.lorem.paragraph(),
+    responsibility: faker.helpers.maybe(() => faker.company.name() + ' Department', { probability: 0.7 }),
+    status: faker.helpers.arrayElement(statusValues),
     departments: Array.from({ length: deptCount }, () => {
-      const status = faker.helpers.arrayElement(statuses);
+      const statusValue = faker.helpers.arrayElement(statusValues);
+      const statusLabel = statusLabels[statusValues.indexOf(statusValue)];
       return {
         id: faker.number.int({ min: 1, max: 30 }),
         name: faker.company.name() + ' Department',
-        status: statusMapping[status]?.label || status,
-        status_badge: statusMapping[status]?.badge || 'badge-secondary'
+        status: statusLabel,
+        status_badge: statusMapping[statusLabel]?.badge || 'badge-secondary'
       };
     }),
     timeline: faker.helpers.maybe(() => faker.date.future().toISOString().split('T')[0], { probability: 0.8 }),

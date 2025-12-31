@@ -4,12 +4,15 @@
  */
 
 import { Link, useParams } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
 import { mockBoardMeetings, mockBoardAgendaPoints } from '../../../lib/mocks/data/boardMeetings';
 import { mockAdminDepartments } from '../../../lib/mocks/data/adminDepartments';
 
 export default function ShowBoardMeeting() {
   const { id } = useParams<{ id: string }>();
   const boardId = Number(id);
+  const tableRef = useRef<HTMLTableElement>(null);
+  const dataTableRef = useRef<any>(null);
   
   // Filter meetings for this board
   const boardMeetings = mockBoardMeetings.filter(m => m.department_id === boardId);
@@ -23,6 +26,111 @@ export default function ShowBoardMeeting() {
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
   };
+
+  // Initialize DataTable
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadScript = (src: string): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        if (document.querySelector(`script[src="${src}"]`)) {
+          resolve();
+          return;
+        }
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+        document.body.appendChild(script);
+      });
+    };
+    
+    const initializeDataTable = () => {
+      if (!tableRef.current || !isMounted) return;
+      
+      // Check if DataTable is already initialized
+      if (dataTableRef.current) {
+        try {
+          dataTableRef.current.destroy();
+        } catch (e) {
+          // Ignore destroy errors
+        }
+        dataTableRef.current = null;
+      }
+      
+      // Check if jQuery and DataTables are available
+      if (typeof window.$ === 'undefined' || !window.$.fn.DataTable) {
+        return;
+      }
+      
+      // Check if already initialized
+      if (window.$.fn.DataTable.isDataTable(tableRef.current)) {
+        return;
+      }
+      
+      // Initialize DataTable with export buttons (matching old CMDMS directive-listing config)
+      dataTableRef.current = window.$(tableRef.current).DataTable({
+        paging: true,
+        ordering: true,
+        searching: true,
+        dom: 'Bfrtip',
+        buttons: [
+          {
+            extend: 'excelHtml5',
+            title: 'Board Meetings',
+            exportOptions: {
+              columns: ':visible'
+            }
+          },
+          {
+            extend: 'print',
+            title: 'Board Meetings',
+            exportOptions: {
+              columns: ':visible'
+            }
+          }
+        ],
+        language: {
+          search: '',
+          searchPlaceholder: 'Search records...'
+        }
+      });
+    };
+    
+    // Load jQuery and DataTables
+    Promise.all([
+      loadScript('https://code.jquery.com/jquery-3.6.0.min.js'),
+      loadScript('https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js'),
+      loadScript('https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js'),
+      loadScript('https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js'),
+      loadScript('https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js')
+    ])
+      .then(() => {
+        // Wait a bit for scripts to fully initialize
+        const timer = setTimeout(() => {
+          if (isMounted) {
+            initializeDataTable();
+          }
+        }, 500);
+        
+        return () => clearTimeout(timer);
+      })
+      .catch((error) => {
+        console.error('Error loading DataTable scripts:', error);
+      });
+    
+    return () => {
+      isMounted = false;
+      if (dataTableRef.current) {
+        try {
+          dataTableRef.current.destroy();
+        } catch (e) {
+          // Ignore destroy errors
+        }
+        dataTableRef.current = null;
+      }
+    };
+  }, [boardMeetings.length]);
 
   return (
     <div className="content-wrapper">
@@ -74,7 +182,12 @@ export default function ShowBoardMeeting() {
           <div className="row">
             <div className="col-12">
               <div className="table-responsive">
-                <table id="directive-listing" className="table-striped" role="grid">
+                <table 
+                  ref={tableRef}
+                  id="directive-listing" 
+                  className="table-striped" 
+                  role="grid"
+                >
                   <thead>
                     <tr>
                       <th>S.NO</th>
@@ -189,5 +302,13 @@ export default function ShowBoardMeeting() {
       </div>
     </div>
   );
+}
+
+// Extend Window interface for jQuery and DataTables
+declare global {
+  interface Window {
+    $: any;
+    jQuery: any;
+  }
 }
 

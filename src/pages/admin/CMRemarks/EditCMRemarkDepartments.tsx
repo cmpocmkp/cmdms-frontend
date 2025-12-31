@@ -19,7 +19,8 @@ const sectorialStatuses: Record<string, string> = {
 };
 
 // badgesWithStatus mapping
-const getBadgeClass = (status: string) => {
+const getBadgeClass = (status: string | number) => {
+  const statusStr = typeof status === 'number' ? String(status) : status;
   const badgesWithStatus: Record<string, string> = {
     "Completed": "success",
     "On Target": "warning",
@@ -29,8 +30,8 @@ const getBadgeClass = (status: string) => {
     "Overdue Other Reason": "indigo",
     "Off Target Reason": "lightred"
   };
-  return badgesWithStatus[status] || "secondary";
-};
+    return badgesWithStatus[statusStr] || "secondary";
+  };
 
 export default function EditCMRemarkDepartments() {
   const { id } = useParams<{ id: string }>();
@@ -46,7 +47,7 @@ export default function EditCMRemarkDepartments() {
       
       cmRemark.departments.forEach(dept => {
         remarks[dept.id] = '';
-        statuses[dept.id] = dept.status || '';
+        statuses[dept.id] = dept.status ? (typeof dept.status === 'number' ? String(dept.status) : dept.status) : '';
       });
       
       setDepartmentRemarks(remarks);
@@ -127,7 +128,7 @@ export default function EditCMRemarkDepartments() {
                   {cmRemark.status ?? ""}
                 </label>
               </p>
-              {(['Overdue', 'On Target'].includes(cmRemark.status)) && (
+              {(['Overdue', 'On Target'].includes(typeof cmRemark.status === 'number' ? String(cmRemark.status) : cmRemark.status)) && (
                 <span className="fw-bold" style={{ color: getDaysRemainingColor() }}>
                   ({getDaysRemainingText()})
                 </span>

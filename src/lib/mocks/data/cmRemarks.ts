@@ -16,10 +16,10 @@ export interface CMRemark {
   departments: {
     id: number;
     name: string;
-    status?: string;
+    status?: number; // Integer status from pivot table
   }[];
   comments?: string;
-  status: string;
+  status: number | string; // Can be integer or string
   created_at: string;
   updated_at: string;
 }
@@ -40,7 +40,7 @@ export const mockCMRemarks: CMRemark[] = Array.from({ length: 60 }, (_, index) =
   const departments = Array.from({ length: deptCount }, () => ({
     id: faker.number.int({ min: 1, max: 30 }),
     name: faker.company.name() + ' Department',
-    status: faker.helpers.arrayElement(['Completed', 'Pending', 'In Progress', 'Overdue'])
+    status: faker.helpers.arrayElement([1, 2, 3, 4, 7]) // Integer status: 1=Completed, 2=On Target, 3=Overdue, 4=Off Target, 7=Ongoing
   }));
 
   return {

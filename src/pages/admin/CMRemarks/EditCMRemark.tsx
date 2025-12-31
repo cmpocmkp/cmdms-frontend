@@ -42,7 +42,7 @@ export default function EditCMRemark() {
       setIssueDate(cmRemark.issue_date);
       setTimeline(cmRemark.timeline);
       setSectionId(cmRemark.section_id.toString());
-      setStatus(cmRemark.status);
+      setStatus(typeof cmRemark.status === 'number' ? String(cmRemark.status) : cmRemark.status);
       setDepartments(cmRemark.departments.map(d => d.id));
       setComments(cmRemark.comments || '');
     }

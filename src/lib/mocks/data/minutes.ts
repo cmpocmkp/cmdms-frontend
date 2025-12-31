@@ -25,6 +25,9 @@ export interface MinuteDecision {
   minute_id: number;
   subject: string;
   decision_text: string;
+  issues?: string; // Issues/Agenda Items/Decision title
+  heading?: string; // Decision Heading
+  decisions?: string; // Decision Detail
   responsibility?: string;
   progress?: string;
   comments?: string;
@@ -76,7 +79,8 @@ const mockDepartmentNames = [
 
 // Generate mock decisions
 export const mockMinuteDecisions: MinuteDecision[] = Array.from({ length: 150 }, (_, index) => {
-  const statusOptions = ['Completed', 'On Target', 'Overdue', 'Off Target', 'Ongoing'];
+  // Cabinet meetings have additional statuses
+  const statusOptions = ['Completed', 'On Target', 'Overdue', 'Off Target', 'Ongoing', 'Off Target Other Reason', 'Overdue Other Reason'];
   const status = faker.helpers.arrayElement(statusOptions);
   const timeline = faker.helpers.maybe(() => faker.date.future().toISOString().split('T')[0], { probability: 0.8 });
   
@@ -108,6 +112,9 @@ export const mockMinuteDecisions: MinuteDecision[] = Array.from({ length: 150 },
     minute_id: faker.number.int({ min: 1, max: 50 }),
     subject: faker.lorem.sentence(),
     decision_text: faker.lorem.paragraphs(2),
+    issues: faker.lorem.paragraph(), // Issues/Agenda Items/Decision title
+    heading: faker.helpers.maybe(() => faker.lorem.sentence(), { probability: 0.5 }), // Decision Heading (optional)
+    decisions: faker.lorem.paragraphs(2), // Decision Detail
     responsibility: faker.lorem.sentence(),
     progress: faker.lorem.paragraph(),
     comments: faker.lorem.paragraph(),

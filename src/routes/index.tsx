@@ -177,6 +177,8 @@ const PTFIssueDetail = lazy(() => import('../pages/admin/PTF/PTFIssueDetail'));
 const RecordnotesUpdatesReport = lazy(() => import('../pages/admin/Reports/RecordnotesUpdatesReport'));
 const RecordnotesUpdatesDetailReport = lazy(() => import('../pages/admin/Reports/RecordnotesUpdatesDetailReport'));
 const RecordnotesComparisionReport = lazy(() => import('../pages/admin/Reports/RecordnotesComparisionReport'));
+const PTIsSummaryReport = lazy(() => import('../pages/admin/Reports/PTIsSummaryReport'));
+const PTIsDetailReport = lazy(() => import('../pages/admin/Reports/PTIsDetailReport'));
 
 // Khushhal Khyber Pakhtunkhwa
 const KhushhalKPKList = lazy(() => import('../pages/admin/KhushhalKPK/KhushhalKPKList'));
@@ -208,6 +210,33 @@ const ShowSummary = lazy(() => import('../pages/admin/Summaries/ShowSummary'));
 // Trackers
 const TrackersList = lazy(() => import('../pages/admin/Trackers/TrackersList'));
 const ShowTracker = lazy(() => import('../pages/admin/Trackers/ShowTracker'));
+
+// Department pages
+const DepartmentRecordNotesList = lazy(() => import('../pages/department/RecordNotesList'));
+const DepartmentRecordNotesReplies = lazy(() => import('../pages/department/RecordNotesReplies'));
+const DepartmentCMRemarksList = lazy(() => import('../pages/department/CMRemarksList'));
+const DepartmentCMRemarksDetail = lazy(() => import('../pages/department/CMRemarksDetail'));
+const DepartmentKhushhalProgrammeList = lazy(() => import('../pages/department/KhushhalProgrammeList'));
+const DepartmentAddKPIData = lazy(() => import('../pages/department/AddKPIData'));
+const DepartmentShowKPIData = lazy(() => import('../pages/department/ShowKPIData'));
+const DepartmentSectoralMeetingsList = lazy(() => import('../pages/department/SectoralMeetingsList'));
+const DepartmentSectorialAgendaPointReplies = lazy(() => import('../pages/department/SectorialAgendaPointReplies'));
+const DepartmentAnnouncementsList = lazy(() => import('../pages/department/AnnouncementsList'));
+const DepartmentAnnouncementDetailReplies = lazy(() => import('../pages/department/AnnouncementDetailReplies'));
+const DepartmentDirectivesList = lazy(() => import('../pages/department/DirectivesList'));
+const DepartmentDirectiveDetailReplies = lazy(() => import('../pages/department/DirectiveDetailReplies'));
+const DepartmentPTFDashboard = lazy(() => import('../pages/department/PTFDashboard'));
+const DepartmentPTFListIssue = lazy(() => import('../pages/department/PTFListIssue'));
+const DepartmentPTFDetails = lazy(() => import('../pages/department/PTFDetails'));
+const DepartmentCreatePTFIssue = lazy(() => import('../pages/department/CreatePTFIssue'));
+const DepartmentPTFDepartmentsDashboard = lazy(() => import('../pages/department/PTFDepartmentsDashboard'));
+const DepartmentBoardMeetingsList = lazy(() => import('../pages/department/BoardMeetingsList'));
+const DepartmentBoardMeetingAgendaPoints = lazy(() => import('../pages/department/BoardMeetingAgendaPoints'));
+const DepartmentBoardMeetingAgendaPointReplies = lazy(() => import('../pages/department/BoardMeetingAgendaPointReplies'));
+const DepartmentSenateMeetingsList = lazy(() => import('../pages/department/SenateMeetingsList'));
+const DepartmentPTIsList = lazy(() => import('../pages/department/PTIsList'));
+const DepartmentPTIsTaskReplies = lazy(() => import('../pages/department/DepartmentPTIsTaskReplies'));
+const DepartmentSummariesList = lazy(() => import('../pages/department/SummariesList'));
 
 // Admin layout
 const AdminLayout = lazy(() => import('../components/shared/layout/AdminLayout'));
@@ -894,6 +923,14 @@ export const router = createBrowserRouter([
         path: 'report/recordnotes-comparision',
         element: withSuspense(RecordnotesComparisionReport),
       },
+      {
+        path: 'report/ptis/summary',
+        element: withSuspense(PTIsSummaryReport),
+      },
+      {
+        path: 'report/ptis/detail',
+        element: withSuspense(PTIsDetailReport),
+      },
     ],
   },
   
@@ -910,7 +947,106 @@ export const router = createBrowserRouter([
         path: 'dashboard',
         element: withSuspense(DepartmentDashboard),
       },
-      // TODO: Add more department routes here
+      {
+        path: 'record-notes',
+        element: withSuspense(DepartmentRecordNotesList),
+      },
+      {
+        path: 'record-notes/:id/reply',
+        element: withSuspense(DepartmentRecordNotesReplies),
+      },
+      {
+        path: 'cm-remarks',
+        element: withSuspense(DepartmentCMRemarksList),
+      },
+      {
+        path: 'cm-remarks/:id',
+        element: withSuspense(DepartmentCMRemarksDetail),
+      },
+      {
+        path: 'khushhal-programme',
+        element: withSuspense(DepartmentKhushhalProgrammeList),
+      },
+      {
+        path: 'khushhal-programme/add/kpis/data',
+        element: withSuspense(DepartmentAddKPIData),
+      },
+      {
+        path: 'khushhal-programme/show/kpis/data',
+        element: withSuspense(DepartmentShowKPIData),
+      },
+      {
+        path: 'sectorial-meetings',
+        element: withSuspense(DepartmentSectoralMeetingsList),
+      },
+      {
+        path: 'sectorial-meetings/:id/reply',
+        element: withSuspense(DepartmentSectorialAgendaPointReplies),
+      },
+      {
+        path: 'announcements',
+        element: withSuspense(DepartmentAnnouncementsList),
+      },
+      {
+        path: 'announcements/:id',
+        element: withSuspense(DepartmentAnnouncementDetailReplies),
+      },
+      {
+        path: 'directives',
+        element: withSuspense(DepartmentDirectivesList),
+      },
+      {
+        path: 'directives/:id',
+        element: withSuspense(DepartmentDirectiveDetailReplies),
+      },
+      {
+        path: 'ptf',
+        element: withSuspense(DepartmentPTFDashboard),
+      },
+      {
+        path: 'ptf/list-issue',
+        element: withSuspense(DepartmentPTFListIssue),
+      },
+      {
+        path: 'ptf/issue/:id',
+        element: withSuspense(DepartmentPTFDetails),
+      },
+      {
+        path: 'ptf/create-issue',
+        element: withSuspense(DepartmentCreatePTFIssue),
+      },
+      {
+        path: 'ptf/departments/dashboard',
+        element: withSuspense(DepartmentPTFDepartmentsDashboard),
+      },
+      {
+        path: 'board-meetings',
+        element: withSuspense(DepartmentBoardMeetingsList),
+      },
+      {
+        path: 'board-meetings/:id/agenda-points',
+        element: withSuspense(DepartmentBoardMeetingAgendaPoints),
+      },
+      {
+        path: 'board-meetings/agenda-point/:id/replies',
+        element: withSuspense(DepartmentBoardMeetingAgendaPointReplies),
+      },
+      {
+        path: 'senate_meetings',
+        element: withSuspense(DepartmentSenateMeetingsList),
+      },
+      {
+        path: 'ptis',
+        element: withSuspense(DepartmentPTIsList),
+      },
+      {
+        path: 'ptis/tasks/:taskId/replies',
+        element: withSuspense(DepartmentPTIsTaskReplies),
+      },
+      {
+        path: 'summaries',
+        element: withSuspense(DepartmentSummariesList),
+      },
     ],
   },
   

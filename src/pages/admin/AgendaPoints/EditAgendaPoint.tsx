@@ -280,7 +280,7 @@ export default function EditAgendaPoint() {
                       </div>
                       {agendaPoint.attachments && agendaPoint.attachments.length > 0 && (
                         <div style={{ marginTop: '10px' }}>
-                          {agendaPoint.attachments.map((file, idx) => (
+                          {agendaPoint.attachments.map((file: string, idx: number) => (
                             <span key={idx} style={{ display: 'block', marginBottom: '5px' }}>
                               <a
                                 href="#"

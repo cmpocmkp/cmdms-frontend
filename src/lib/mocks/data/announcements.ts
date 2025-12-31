@@ -21,11 +21,13 @@ export interface AnnouncementDetail {
   id: number;
   announcement_id: number;
   subject: string;
+  title?: string; // Alias for subject
   description: string;
   department_id: number;
   department_name: string;
-  status: string;
+  status: number | string; // Integer status from DecisionStatus enum
   timeline?: string;
+  attachments?: string[];
   created_at: string;
 }
 
@@ -64,14 +66,19 @@ export const mockAnnouncements: Announcement[] = Array.from({ length: 40 }, (_, 
 });
 
 // Generate mock announcement details
-export const mockAnnouncementDetails: AnnouncementDetail[] = Array.from({ length: 200 }, (_, index) => ({
-  id: index + 1,
-  announcement_id: faker.number.int({ min: 1, max: 40 }),
-  subject: faker.lorem.sentence(),
-  description: faker.lorem.paragraphs(2),
-  department_id: faker.number.int({ min: 1, max: 30 }),
-  department_name: faker.company.name() + ' Department',
-  status: faker.helpers.arrayElement(['Completed', 'Pending', 'In Progress']),
-  timeline: faker.helpers.maybe(() => faker.date.future().toISOString().split('T')[0], { probability: 0.8 }),
-  created_at: faker.date.past().toISOString()
-}));
+export const mockAnnouncementDetails: AnnouncementDetail[] = Array.from({ length: 200 }, (_, index) => {
+  const statusValues = [1, 2, 3]; // Completed, On Target, Overdue
+  return {
+    id: index + 1,
+    announcement_id: faker.number.int({ min: 1, max: 40 }),
+    subject: faker.lorem.sentence(),
+    title: faker.lorem.sentence(), // Alias for subject
+    description: faker.lorem.paragraphs(2),
+    department_id: faker.number.int({ min: 1, max: 30 }),
+    department_name: faker.company.name() + ' Department',
+    status: faker.helpers.arrayElement(statusValues), // Integer status
+    timeline: faker.helpers.maybe(() => faker.date.future().toISOString().split('T')[0], { probability: 0.8 }),
+    attachments: faker.helpers.maybe(() => Array.from({ length: faker.number.int({ min: 1, max: 3 }) }, () => faker.system.fileName()), { probability: 0.4 }),
+    created_at: faker.date.past().toISOString()
+  };
+});

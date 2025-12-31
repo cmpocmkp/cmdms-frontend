@@ -18,7 +18,8 @@ export default function CMRemarksList() {
   const paginatedRemarks = cmRemarks.slice(startIndex, endIndex);
 
   // badgesWithStatus mapping from old CMDMS
-  const getBadgeClass = (status: string) => {
+  const getBadgeClass = (status: string | number) => {
+    const statusStr = typeof status === 'number' ? String(status) : status;
     const badgesWithStatus: Record<string, string> = {
       "Completed": "success",
       "On Target": "warning",
@@ -28,7 +29,7 @@ export default function CMRemarksList() {
       "Overdue Other Reason": "indigo",
       "Off Target Reason": "lightred"
     };
-    return badgesWithStatus[status] || "secondary";
+    return badgesWithStatus[statusStr] || "secondary";
   };
 
   return (

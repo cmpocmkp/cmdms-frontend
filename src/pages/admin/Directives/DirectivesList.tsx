@@ -506,7 +506,7 @@ export default function DirectivesList() {
                             {directive.departments.length > 0 ? (
                               <table className="table table-bordered">
                                 <tbody>
-                                  {directive.departments.map((dept: { id: number; name: string; status?: string }) => (
+                                  {directive.departments.map((dept: { id: number; name: string; status?: string | number }) => (
                                     <tr key={dept.id}>
                                       <td style={{ width: '60%', color: '#495057', backgroundColor: '#e9ecef', borderColor: '#c9ccd7' }}>
                                         {dept.name}

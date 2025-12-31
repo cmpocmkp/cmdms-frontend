@@ -435,6 +435,36 @@ export const mockUsers: User[] = [
     updated_at: '2023-01-01T00:00:00.000Z',
   },
   
+  // Housing Department
+  {
+    id: 31,
+    name: 'Muhammad Asif',
+    email: 'muhammad.asif@housing.gov.pk',
+    phone: generatePhone(),
+    role_id: 2,
+    role: mockRoles[1],
+    department_id: 22,
+    department: getDepartmentById(22),
+    is_active: true,
+    created_at: '2023-01-01T00:00:00.000Z',
+    updated_at: '2023-01-01T00:00:00.000Z',
+  },
+  
+  // Finance Department - FULL ACCESS USER (For Testing All Modules)
+  {
+    id: 32,
+    name: 'Test User - Full Access',
+    email: 'test.fullaccess@finance.gov.pk',
+    phone: generatePhone(),
+    role_id: 2,
+    role: mockRoles[1],
+    department_id: 14,
+    department: getDepartmentById(14),
+    is_active: true,
+    created_at: '2023-01-01T00:00:00.000Z',
+    updated_at: '2023-01-01T00:00:00.000Z',
+  },
+  
   // ============= DATA ENTRY USERS =============
   {
     id: 50,
@@ -501,18 +531,53 @@ export function getDepartmentUsers(): User[] {
 
 /**
  * Authenticate user (mock login)
+ * Test credentials:
+ * - Admin: SuperAdmin@123
+ * - Department: DeptUser@123
+ * - Data Entry: DataEntry@123
+ * - CM: CM@123
+ * - CS: CS@123
  */
 export function authenticateUser(email: string, password: string): User | null {
-  // For mock purposes, any user with correct email and "password" or "password123" works
-  if (password !== 'password' && password !== 'password123') {
+  const user = mockUsers.find(u => u.email === email && u.is_active);
+  if (!user) {
     return null;
   }
   
-  return mockUsers.find(u => u.email === email && u.is_active) || null;
+  // Check password based on role
+  let isValidPassword = false;
+  
+  if (user.role_id === 1) {
+    // Admin
+    isValidPassword = password === 'SuperAdmin@123' || password === 'password' || password === 'password123';
+  } else if (user.role_id === 2) {
+    // Department user
+    isValidPassword = password === 'DeptUser@123' || password === 'password' || password === 'password123';
+  } else if (user.role_id === 3) {
+    // Data Entry
+    isValidPassword = password === 'DataEntry@123' || password === 'password' || password === 'password123';
+  } else if (user.role_id === 4) {
+    // CM
+    isValidPassword = password === 'CM@123' || password === 'password' || password === 'password123';
+  } else if (user.role_id === 5) {
+    // CS
+    isValidPassword = password === 'CS@123' || password === 'password' || password === 'password123';
+  } else {
+    // Default fallback
+    isValidPassword = password === 'password' || password === 'password123';
+  }
+  
+  if (!isValidPassword) {
+    return null;
+  }
+  
+  return user;
 }
 
 /**
  * Get user permissions (mock)
+ * In old CMDMS, permissions are assigned per user, not per role
+ * Different department users have different permission sets
  */
 export function getUserPermissions(userId: number): string[] {
   const user = getUserById(userId);
@@ -523,23 +588,182 @@ export function getUserPermissions(userId: number): string[] {
     return ['*']; // All permissions
   }
   
-  // Department users have limited permissions
+  // Department users have LIMITED permissions (varies by user)
+  // This matches old CMDMS where not all department users see all modules
   if (user.role_id === 2) {
+    // Base permissions - all department users have dashboard
+    const basePermissions = ['department.dashboard'];
+    
+    // Assign different permission sets to different users
+    // This simulates real-world where users have different access levels
+    
+    // User ID 10 (Saqib Zaman - Finance) - Common modules only
+    if (userId === 10) {
+      return [
+        ...basePermissions,
+        'department.recordnotes.list',
+        'department.cmremarks.index',
+        'department.directives.list',
+        'department.announcements.list',
+      ];
+    }
+    
+    // User ID 11 (Uzma Khalid - Finance) - More modules
+    if (userId === 11) {
+      return [
+        ...basePermissions,
+        'department.recordnotes.list',
+        'department.cmremarks.index',
+        'department.directives.list',
+        'department.announcements.list',
+        'department.sectorial-meetings.list',
+        'department.board-meetings.list',
+      ];
+    }
+    
+    // User ID 12 (Dr. Ahmed Hassan - Health) - Limited access
+    if (userId === 12) {
+      return [
+        ...basePermissions,
+        'department.recordnotes.list',
+        'department.cmremarks.index',
+        'department.directives.list',
+      ];
+    }
+    
+    // User ID 13 (Dr. Fatima Noor - Health) - Moderate access
+    if (userId === 13) {
+      return [
+        ...basePermissions,
+        'department.recordnotes.list',
+        'department.cmremarks.index',
+        'department.directives.list',
+        'department.announcements.list',
+        'department.sectorial-meetings.list',
+        'department.ptf.index',
+      ];
+    }
+    
+    // User ID 14 (Rashid Mahmood - Education) - Moderate access
+    if (userId === 14) {
+      return [
+        ...basePermissions,
+        'department.recordnotes.list',
+        'department.cmremarks.index',
+        'department.directives.list',
+        'department.announcements.list',
+        'department.board-meetings.list',
+        'department.ptis.index',
+      ];
+    }
+    
+    // User ID 15 (Sadia Iqbal - Education) - More access
+    if (userId === 15) {
+      return [
+        ...basePermissions,
+        'department.recordnotes.list',
+        'department.cmremarks.index',
+        'department.directives.list',
+        'department.announcements.list',
+        'department.sectorial-meetings.list',
+        'department.board-meetings.list',
+        'department.ptis.index',
+        'department.summaries.index',
+      ];
+    }
+    
+    // User ID 31 (Muhammad Asif - Housing) - Moderate access
+    // Based on old CMDMS image, Housing has: Record Notes, Cabinet, CM Remarks, Directives, 
+    // Sectoral Meetings, Announcements, PTF, Boards Meetings, PTIs KP
+    if (userId === 31) {
+      return [
+        ...basePermissions,
+        'department.recordnotes.list',
+        'department.cmremarks.index',
+        'department.directives.list',
+        'department.announcements.list',
+        'department.sectorial-meetings.list',
+        'department.board-meetings.list',
+        'department.ptf.index',
+        'department.ptis.index',
+      ];
+    }
+    
+    // User ID 32 (Test User - Full Access) - ALL DEPARTMENT MODULES
+    // This user has access to ALL department modules for testing purposes
+    if (userId === 32) {
+      return [
+        ...basePermissions,
+        // Record Notes & Cabinet Minutes
+        'department.recordnotes.list',
+        // CM Remarks
+        'department.cmremarks.index',
+        // Khushhal Programme
+        'department.khushhal.task.list',
+        'department.khushhal-programme.create',
+        'department.khushhal-programme.show',
+        // Directives
+        'department.directives.list',
+        // Sectoral Meetings
+        'department.sectorial-meetings.list',
+        // Announcements
+        'department.announcements.list',
+        // PTF
+        'department.ptf.index',
+        'department.ptf.create-issue',
+        'department.ptf.departments.dashboard',
+        // Board Meetings
+        'department.board-meetings.list',
+        // Senate Meetings
+        'department.senate_meetings.index',
+        // PTIs KP
+        'department.ptis.index',
+        // Summaries
+        'department.summaries.index',
+      ];
+    }
+    
+    // Default for other department users - Basic access only
     return [
-      'view_assigned_tasks',
-      'reply_to_tasks',
-      'update_progress',
-      'view_own_department',
-      'upload_files',
+      ...basePermissions,
+      'department.recordnotes.list',
+      'department.cmremarks.index',
+      'department.directives.list',
     ];
   }
   
-  // Data entry
+  // Data entry users have limited admin permissions
   if (user.role_id === 3) {
     return [
-      'create_records',
-      'edit_records',
-      'view_records',
+      // Dashboard
+      'admin.dashboard',
+      // Minutes/Record Notes
+      'admin.recordnotes.departments',
+      // Directives
+      'admin.directives.list',
+      // Announcements
+      'admin.announcements.list',
+      // PTIs
+      'admin.ptis.index',
+      // Summaries
+      'admin.summaries.index',
+      // Trackers/Interventions
+      'admin.interventions.index',
+      // CM Remarks
+      'admin.cmremarks.index',
+      // Inaugurations
+      'admin.inaugurations.index',
+      // Sectoral Meetings
+      'admin.sectorialmeetings.index',
+      // Boards
+      'admin.boardmeetings.index',
+      'admin.boardacts.index',
+      'admin.boardmembers.index',
+      // Reports (limited)
+      'admin.report.recordnotes',
+      'admin.report.directives',
+      'admin.report.boardmeetings',
+      'admin.report.inaugurations',
     ];
   }
   
