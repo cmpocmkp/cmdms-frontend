@@ -15,13 +15,16 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } f
 
 // Toggle between mock and real backend
 // Set to false when real backend is ready
-export const USE_MOCK_DATA = true;
+export const USE_MOCK_DATA = false;
 
 /**
  * API Client Configuration
+ * Base URL from API_INTEGRATION_GUIDE.md
+ * Base URL: https://cmdms-backend-production.up.railway.app
+ * API Base Path: /api
  */
 const apiClient: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: import.meta.env.VITE_API_URL || 'https://cmdms-backend-production.up.railway.app/api',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -31,7 +34,7 @@ const apiClient: AxiosInstance = axios.create({
 
 /**
  * Request Interceptor
- * - Adds auth token (when backend is ready)
+ * - Adds auth token to all requests (except login)
  * - Routes to mock data if USE_MOCK_DATA is true
  */
 apiClient.interceptors.request.use(
@@ -44,13 +47,17 @@ apiClient.interceptors.request.use(
         config.headers = {} as any;
       }
       config.headers['X-Mock-Mode'] = 'true';
+      return config;
     }
     
-    // TODO: Add auth token when backend is ready
-    // const token = getAuthToken();
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
+    // Add auth token to all requests (except login/forgot-password/reset-password)
+    const token = getAuthToken();
+    if (token && !config.url?.includes('/auth/login') && !config.url?.includes('/auth/forgot-password') && !config.url?.includes('/auth/reset-password')) {
+      if (!config.headers) {
+        config.headers = {} as any;
+      }
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     
     return config;
   },
@@ -62,14 +69,14 @@ apiClient.interceptors.request.use(
 /**
  * Response Interceptor
  * - Handles common errors
- * - Refreshes token if needed (future)
+ * - Handles 401 (Unauthorized) - clears auth and redirects to login
  * - Logs responses in dev mode
  */
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     // Log in development
     if (import.meta.env.DEV) {
-      console.log('API Response:', response);
+      console.log('API Response:', response.config.method?.toUpperCase(), response.config.url, response.data);
     }
     
     return response;
@@ -81,10 +88,17 @@ apiClient.interceptors.response.use(
       
       switch (status) {
         case 401:
-          // Unauthorized - redirect to login
-          console.error('Unauthorized access - redirecting to login');
-          // TODO: Clear auth state and redirect
-          // window.location.href = '/login';
+          // Unauthorized - clear auth state and redirect to login
+          // Skip redirect for login endpoint to avoid redirect loop
+          if (!error.config?.url?.includes('/auth/login')) {
+            clearAuthToken();
+            // Clear any persisted auth state
+            localStorage.removeItem('cmdms-auth-storage');
+            // Redirect to login
+            if (window.location.pathname !== '/login') {
+              window.location.href = '/login';
+            }
+          }
           break;
           
         case 403:
@@ -94,7 +108,14 @@ apiClient.interceptors.response.use(
           
         case 404:
           // Not found
-          console.error('Resource not found');
+          console.error('Resource not found:', error.config?.url);
+          if (error.config?.baseURL && error.config?.url) {
+            console.error('Full URL:', error.config.baseURL + error.config.url);
+          }
+          // Note: If you're getting 404 errors, verify:
+          // 1. Backend is accessible at the configured base URL
+          // 2. Endpoint path matches API_INTEGRATION_GUIDE.md
+          // 3. Backend service is running and deployed
           break;
           
         case 422:
@@ -136,25 +157,39 @@ export const shouldSimulateError = (probability: number = 0.05): boolean => {
 };
 
 /**
- * Get auth token from storage (placeholder)
+ * Get auth token from storage
  */
 export const getAuthToken = (): string | null => {
-  // TODO: Implement when backend is ready
   return localStorage.getItem('auth_token');
 };
 
 /**
- * Set auth token in storage (placeholder)
+ * Get refresh token from storage
+ */
+export const getRefreshToken = (): string | null => {
+  return localStorage.getItem('refresh_token');
+};
+
+/**
+ * Set auth tokens in storage
  */
 export const setAuthToken = (token: string): void => {
   localStorage.setItem('auth_token', token);
 };
 
 /**
- * Clear auth token from storage
+ * Set refresh token in storage
+ */
+export const setRefreshToken = (token: string): void => {
+  localStorage.setItem('refresh_token', token);
+};
+
+/**
+ * Clear auth tokens from storage
  */
 export const clearAuthToken = (): void => {
   localStorage.removeItem('auth_token');
+  localStorage.removeItem('refresh_token');
 };
 
 /**
