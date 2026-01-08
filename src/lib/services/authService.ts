@@ -18,7 +18,6 @@ import type {
   ApiResponse,
   LoginRequest,
   LoginResponseData,
-  ChangePasswordRequest,
   ForgotPasswordRequest,
   ResetPasswordRequest,
 } from '../../types/api';
