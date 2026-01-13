@@ -27,6 +27,8 @@
 - [Tasks](#tasks)
 - [Welfare](#welfare)
 - [Issues & Complaints](#issues--complaints)
+- [Activity Logs](#activity-logs)
+- [Common APIs](#common-apis)
 
 ---
 
@@ -1802,6 +1804,68 @@ curl -X POST 'https://cmdms-backend-production.up.railway.app/api/migration/lega
   -H 'Authorization: Bearer YOUR_TOKEN' \
   -H 'Content-Type: application/json' \
   -d '{"source":"legacy_system","dataType":"meetings","data":[...]}'
+```
+
+---
+
+---
+
+## Activity Logs (Pending Implementation)
+
+**Note:** This module tracks system-wide user activities.
+
+### List Activity Logs
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/activity-logs?page=1&limit=20' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+---
+
+## Common APIs (Pending Implementation)
+
+**Note:** These endpoints provide shared resources like dropdowns, global search, and generic exports.
+
+### Dropdowns
+
+#### Departments Dropdown
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/common/departments/dropdown' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+#### Users Dropdown
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/common/users/dropdown' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+#### Roles Dropdown
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/common/roles/dropdown' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+#### Department Types Dropdown
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/common/departments/types/dropdown' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Global Search
+
+#### Search All Modules
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/search?q=query_string' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Excel Export
+
+#### Generic Export
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/export/excel?type=meetings' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
 ```
 
 ---

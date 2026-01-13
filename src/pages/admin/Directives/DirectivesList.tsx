@@ -1,53 +1,143 @@
 /**
  * Directives List - Admin Module
  * EXACT replica of admin/directives/index.blade.php from old CMDMS
+ * Integrated with real API following API_INTEGRATION_GUIDE.md
  */
 
-import { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { mockDirectives, mockDirectivesSummary } from '../../../lib/mocks/data/directives';
+import { useState, useMemo, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import * as directiveService from '../../../lib/services/directiveService';
+import { mapDirectiveToDisplay, type DisplayDirective } from '../../../lib/utils/directiveMapper';
+import { USE_MOCK_DATA } from '../../../lib/api';
+import { mockDirectives } from '../../../lib/mocks/data/directives';
 import { EditDirectiveModal } from './components/EditDirectiveModal';
 
 export default function DirectivesList() {
-  const [directives] = useState(mockDirectives);
-  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [searchParams] = useSearchParams();
+  const [directives, setDirectives] = useState<DisplayDirective[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') || '');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(15);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedDirective, setSelectedDirective] = useState<any>(null);
+  const [selectedDirective, setSelectedDirective] = useState<DisplayDirective | null>(null);
+  const [deleting, setDeleting] = useState<number | null>(null);
 
-  const summary = mockDirectivesSummary;
+  // Calculate summary from directives
+  const summary = useMemo(() => {
+    const total = directives.length;
+    const completed = directives.filter(d => d.status === 'Completed').length;
+    const onTarget = directives.filter(d => d.status === 'On Target').length;
+    const overdue = directives.filter(d => d.status === 'Overdue').length;
+    
+    return {
+      total,
+      'Completed': {
+        count: completed,
+        percent: total > 0 ? Math.round((completed / total) * 100) : 0
+      },
+      'On Target': {
+        count: onTarget,
+        percent: total > 0 ? Math.round((onTarget / total) * 100) : 0
+      },
+      'Overdue': {
+        count: overdue,
+        percent: total > 0 ? Math.round((overdue / total) * 100) : 0
+      }
+    };
+  }, [directives]);
 
+  // Fetch directives from API
+  useEffect(() => {
+    fetchDirectives();
+  }, [currentPage, itemsPerPage, statusFilter, searchTerm]);
+
+  const fetchDirectives = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (USE_MOCK_DATA) {
+        // Use mock data
+        setDirectives(mockDirectives as DisplayDirective[]);
+        setTotal(mockDirectives.length);
+        setTotalPages(Math.ceil(mockDirectives.length / itemsPerPage));
+      } else {
+        // Real API call
+        const params: directiveService.ListDirectivesParams = {
+          page: currentPage,
+          limit: itemsPerPage,
+        };
+
+        if (searchTerm) {
+          params.search = searchTerm;
+        }
+
+        if (statusFilter) {
+          // Map status filter to API format (1=Completed, 2=On Target, 3=Overdue)
+          params.status = statusFilter;
+        }
+
+        const response = await directiveService.listDirectives(params);
+
+        if (response.success && response.data) {
+          // Map API response to display format
+          const mappedDirectives = response.data.map(mapDirectiveToDisplay);
+          setDirectives(mappedDirectives);
+          setTotal(response.meta?.total || mappedDirectives.length);
+          setTotalPages(response.meta?.totalPages || Math.ceil(mappedDirectives.length / itemsPerPage));
+        } else {
+          setError(response.message || 'Failed to load directives');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error fetching directives:', err);
+      setError(err.response?.data?.error?.message || 'Failed to load directives');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // For real API, filtering is done server-side, so we use directives directly
+  // For mock data, we still do client-side filtering
   const filteredDirectives = useMemo(() => {
-    let filtered = directives;
+    if (USE_MOCK_DATA) {
+      let filtered = directives;
 
-    // Filter by status
-    if (statusFilter) {
-      const statusMap: { [key: string]: string } = {
-        '1': 'Completed',
-        '2': 'On Target',
-        '3': 'Overdue'
-      };
-      const statusLabel = statusMap[statusFilter];
-      filtered = filtered.filter(d => d.status === statusLabel);
+      // Filter by status
+      if (statusFilter) {
+        const statusMap: { [key: string]: string } = {
+          '1': 'Completed',
+          '2': 'On Target',
+          '3': 'Overdue'
+        };
+        const statusLabel = statusMap[statusFilter];
+        filtered = filtered.filter(d => d.status === statusLabel);
+      }
+
+      // Filter by search term
+      if (searchTerm) {
+        filtered = filtered.filter(d =>
+          d.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          d.letter_no.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+
+      return filtered;
     }
+    // For real API, directives are already filtered server-side
+    return directives;
+  }, [directives, statusFilter, searchTerm, USE_MOCK_DATA]);
 
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(d =>
-        d.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        d.letter_no.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    return filtered;
-  }, [directives, statusFilter, searchTerm]);
-
-  const totalPages = Math.ceil(filteredDirectives.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedDirectives = filteredDirectives.slice(startIndex, endIndex);
+  const paginatedDirectives = USE_MOCK_DATA 
+    ? filteredDirectives.slice(startIndex, endIndex)
+    : filteredDirectives; // API already returns paginated data
 
   // Export Functions - Matching old CMDMS DataTables functionality
   const handleCopy = () => {
@@ -236,10 +326,35 @@ export default function DirectivesList() {
     printWindow.print();
   };
 
-  const handleDelete = (directiveId: number) => {
-    if (confirm('Are you sure you want to delete this directive? This action cannot be undone.')) {
-      console.log('Delete directive:', directiveId);
-      alert('Delete functionality will be implemented with backend API');
+  const handleDelete = async (directiveId: number) => {
+    if (!confirm('Are you sure you want to delete this directive? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeleting(directiveId);
+      
+      if (USE_MOCK_DATA) {
+        // Mock delete
+        setDirectives(directives.filter(d => d.id !== directiveId));
+        alert('Directive deleted successfully!');
+      } else {
+        // Real API delete
+        const response = await directiveService.deleteDirective(directiveId);
+        
+        if (response.success) {
+          // Refresh the list
+          await fetchDirectives();
+          alert('Directive deleted successfully!');
+        } else {
+          alert(response.message || 'Failed to delete directive');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error deleting directive:', err);
+      alert(err.response?.data?.error?.message || 'Failed to delete directive');
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -303,6 +418,33 @@ export default function DirectivesList() {
           </div>
         </div>
         <div className="card-body">
+          {/* Loading State */}
+          {loading && (
+            <div className="text-center p-5">
+              <div className="spinner-border text-primary" role="status">
+                <span className="sr-only">Loading...</span>
+              </div>
+              <p className="mt-2 text-muted">Loading directives...</p>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && !loading && (
+            <div className="alert alert-danger" role="alert">
+              <i className="ti-alert-circle mr-2"></i>
+              <strong>Error:</strong> {error}
+              <button 
+                className="btn btn-sm btn-outline-danger ml-3" 
+                onClick={fetchDirectives}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {/* Content */}
+          {!loading && !error && (
+            <>
           {/* Status Cards */}
           <div className="row my-5 d-flex justify-content-center">
             {statusCards.map(card => (
@@ -539,8 +681,13 @@ export default function DirectivesList() {
                               onClick={() => handleDelete(directive.id)}
                               className="btn btn-danger mb-2"
                               title="delete"
+                              disabled={deleting === directive.id}
                             >
-                              <i className="ti-trash"></i>
+                              {deleting === directive.id ? (
+                                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                              ) : (
+                                <i className="ti-trash"></i>
+                              )}
                             </button>
 
                             {/* View Chat History (Replies) */}
@@ -578,85 +725,86 @@ export default function DirectivesList() {
             </div>
           </div>
 
-        </div>
-
-        {/* Pagination Footer */}
-        <div className="card-footer mt-3 border">
-          <div className="row align-items-center">
-            <div className="col">
-              <div className="form-group mb-0 row align-items-center">
-                <label htmlFor="perPage" className="col-sm-3 col-form-label mb-0">Show</label>
-                <select
-                  id="perPage"
-                  className="form-control form-control-sm col-sm-3"
-                  value={itemsPerPage}
-                  onChange={(e) => {
-                    setItemsPerPage(Number(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="10">10</option>
-                  <option value="15">15</option>
-                  <option value="25">25</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
-                </select>
-                <span className="inline-block col-sm-6">per page</span>
+          {/* Pagination Footer */}
+          <div className="card-footer mt-3 border">
+            <div className="row align-items-center">
+              <div className="col">
+                <div className="form-group mb-0 row align-items-center">
+                  <label htmlFor="perPage" className="col-sm-3 col-form-label mb-0">Show</label>
+                  <select
+                    id="perPage"
+                    className="form-control form-control-sm col-sm-3"
+                    value={itemsPerPage}
+                    onChange={(e) => {
+                      setItemsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <option value="10">10</option>
+                    <option value="15">15</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                  <span className="inline-block col-sm-6">per page</span>
+                </div>
+              </div>
+              <div className="col text-center">
+                <p className="mb-0">
+                  Showing <strong>{startIndex + 1}</strong> to{' '}
+                  <strong>{Math.min(endIndex, USE_MOCK_DATA ? filteredDirectives.length : total)}</strong> of total{' '}
+                  <strong>{USE_MOCK_DATA ? filteredDirectives.length : total}</strong> records.
+                </p>
+              </div>
+              <div className="col d-flex justify-content-end">
+                {totalPages > 1 && (
+                  <nav>
+                    <ul className="pagination mb-0">
+                      <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                        <button
+                          className="page-link"
+                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                          disabled={currentPage === 1}
+                        >
+                          Previous
+                        </button>
+                      </li>
+                      {[...Array(Math.min(5, totalPages))].map((_, index) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                          pageNum = index + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = index + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + index;
+                        } else {
+                          pageNum = currentPage - 2 + index;
+                        }
+                        return (
+                          <li key={index} className={`page-item ${currentPage === pageNum ? 'active' : ''}`}>
+                            <button className="page-link" onClick={() => setCurrentPage(pageNum)}>
+                              {pageNum}
+                            </button>
+                          </li>
+                        );
+                      })}
+                      <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                        <button
+                          className="page-link"
+                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                          disabled={currentPage === totalPages}
+                        >
+                          Next
+                        </button>
+                      </li>
+                    </ul>
+                  </nav>
+                )}
               </div>
             </div>
-            <div className="col text-center">
-              <p className="mb-0">
-                Showing <strong>{startIndex + 1}</strong> to{' '}
-                <strong>{Math.min(endIndex, filteredDirectives.length)}</strong> of total{' '}
-                <strong>{filteredDirectives.length}</strong> records.
-              </p>
-            </div>
-            <div className="col d-flex justify-content-end">
-              {totalPages > 1 && (
-                <nav>
-                  <ul className="pagination mb-0">
-                    <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                      <button
-                        className="page-link"
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                      >
-                        Previous
-                      </button>
-                    </li>
-                    {[...Array(Math.min(5, totalPages))].map((_, index) => {
-                      let pageNum;
-                      if (totalPages <= 5) {
-                        pageNum = index + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = index + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + index;
-                      } else {
-                        pageNum = currentPage - 2 + index;
-                      }
-                      return (
-                        <li key={index} className={`page-item ${currentPage === pageNum ? 'active' : ''}`}>
-                          <button className="page-link" onClick={() => setCurrentPage(pageNum)}>
-                            {pageNum}
-                          </button>
-                        </li>
-                      );
-                    })}
-                    <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                      <button
-                        className="page-link"
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages}
-                      >
-                        Next
-                      </button>
-                    </li>
-                  </ul>
-                </nav>
-              )}
-            </div>
           </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -668,10 +816,37 @@ export default function DirectivesList() {
           setSelectedDirective(null);
         }}
         directive={selectedDirective}
-        onSubmit={(data) => {
-          console.log('Update Directive:', data);
-          alert('Directive updated successfully! (Backend integration pending)');
-          setShowEditModal(false);
+        onSubmit={async (data) => {
+          if (!selectedDirective) return;
+
+          try {
+            if (USE_MOCK_DATA) {
+              alert('Directive updated successfully! (Mock mode)');
+            } else {
+              const updateData = {
+                title: data.subject,
+                description: data.comments,
+                referenceNumber: data.letter_no,
+                deadline: data.date,
+                status: data.status === 'Completed' ? 1 : data.status === 'On Target' ? 2 : 3,
+              };
+
+              const response = await directiveService.updateDirective(selectedDirective.id, updateData);
+              
+              if (response.success) {
+                await fetchDirectives();
+                alert('Directive updated successfully!');
+              } else {
+                alert(response.message || 'Failed to update directive');
+                return;
+              }
+            }
+            setShowEditModal(false);
+            setSelectedDirective(null);
+          } catch (err: any) {
+            console.error('Error updating directive:', err);
+            alert(err.response?.data?.error?.message || 'Failed to update directive');
+          }
         }}
       />
     </div>

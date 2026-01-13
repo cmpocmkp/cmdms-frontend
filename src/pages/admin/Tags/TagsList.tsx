@@ -1,16 +1,74 @@
 /**
  * Tags List Page - Admin Module
  * EXACT replica of admin/tags/index.blade.php from old CMDMS
+ * Integrated with real API following API_INTEGRATION_GUIDE.md
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { mockAdminTags, type Tag } from '../../../lib/mocks/data/adminTags';
+import * as tagService from '../../../lib/services/tagService';
+import { USE_MOCK_DATA } from '../../../lib/api';
+import { mockAdminTags } from '../../../lib/mocks/data/adminTags';
+
+interface DisplayTag {
+  id: number;
+  name: string;
+  module_label?: string;
+  parent_name?: string;
+  status_label?: string;
+}
 
 export default function TagsList() {
-  const [tags] = useState<Tag[]>(mockAdminTags);
+  const [tags, setTags] = useState<DisplayTag[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
+
+  // Fetch tags from API
+  useEffect(() => {
+    fetchTags();
+  }, []);
+
+  const fetchTags = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (USE_MOCK_DATA) {
+        // Use mock data as fallback
+        setTags(mockAdminTags as DisplayTag[]);
+      } else {
+        // Real API call
+        const response = await tagService.listTags();
+
+        if (response.success && response.data) {
+          // Map API response to display format
+          // response.data is Tag[]
+          const mappedTags: DisplayTag[] = response.data.map((tag) => ({
+            id: tag.id,
+            name: tag.name,
+            module_label: undefined, // Not in API response
+            parent_name: undefined, // Not in API response
+            status_label: undefined, // Not in API response
+          }));
+
+          setTags(mappedTags);
+        } else {
+          setError('Failed to load tags');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error fetching tags:', err);
+      setError(err.response?.data?.error?.message || 'Failed to load tags');
+      // Fallback to mock data on error if in development
+      if (import.meta.env.DEV) {
+        setTags(mockAdminTags as DisplayTag[]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Calculate pagination
   const totalPages = Math.ceil(tags.length / itemsPerPage);
@@ -19,10 +77,18 @@ export default function TagsList() {
   const paginatedTags = tags.slice(startIndex, endIndex);
   const firstItem = startIndex + 1;
 
-  const handleDelete = (tagId: number, tagName: string) => {
-    if (window.confirm('Are you sure you want to delete this tag?')) {
-      console.log(`Delete tag ${tagId}: ${tagName}`);
-      // TODO: Implement delete functionality when backend is ready
+  const handleDelete = async (tagId: number, tagName: string) => {
+    if (window.confirm(`Are you sure you want to delete tag "${tagName}"?`)) {
+      try {
+        // Note: API guide doesn't show delete endpoint for tags, so we'll skip for now
+        // If delete is needed, it should be added to tagService
+        console.log(`Delete tag ${tagId}: ${tagName}`);
+        // Refresh the list
+        fetchTags();
+      } catch (err: any) {
+        console.error('Error deleting tag:', err);
+        alert(err.response?.data?.error?.message || 'Failed to delete tag');
+      }
     }
   };
 
@@ -58,21 +124,33 @@ export default function TagsList() {
               </div>
             </div>
             <div className="card-body">
-              <div className="table-responsive">
-                <table className="table table-striped">
-                  <thead style={{ background: 'rgb(37, 136, 95) !important', color: 'white !important' }}>
-                    <tr>
-                      <th>#</th>
-                      <th>Name</th>
-                      <th>Module</th>
-                      <th>Parent Tag</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedTags.length > 0 ? (
-                      paginatedTags.map((tag, index) => (
+              {error && (
+                <div className="alert alert-danger" role="alert">
+                  {error}
+                </div>
+              )}
+              {loading ? (
+                <div className="text-center py-4">
+                  <div className="spinner-border" role="status">
+                    <span className="sr-only">Loading...</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="table table-striped">
+                    <thead style={{ background: 'rgb(37, 136, 95) !important', color: 'white !important' }}>
+                      <tr>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th>Module</th>
+                        <th>Parent Tag</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedTags.length > 0 ? (
+                        paginatedTags.map((tag, index) => (
                         <tr key={tag.id}>
                           <td>{firstItem + index}</td>
                           <td>{tag.name.charAt(0).toUpperCase() + tag.name.slice(1)}</td>
@@ -107,9 +185,10 @@ export default function TagsList() {
                   </tbody>
                 </table>
               </div>
+              )}
               
               {/* Pagination */}
-              {totalPages > 1 && (
+              {!loading && totalPages > 1 && (
                 <div className="mt-4">
                   <nav aria-label="Page navigation">
                     <ul className="pagination justify-content-center">

@@ -1,34 +1,31 @@
 /**
  * Add Candidate - Admin Module
  * EXACT replica of admin/candidates/add.blade.php from old CMDMS
+ * Integrated with real API following API_INTEGRATION_GUIDE.md
+ * 
+ * Note: API supports: name, party, constituencyId
+ * Additional form fields (districtId, position, area, division, phone, mobile, email, nic, address) are UI-only and not sent to API
  */
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import * as candidateService from '../../../lib/services/candidateService';
+import { USE_MOCK_DATA } from '../../../lib/api';
 import { schemeMockDistricts } from '../../../lib/mocks/data/schemes';
 
-// Mock parties
-const mockParties = [
-  { id: 1, name: 'PTI' },
-  { id: 2, name: 'PML-N' },
-  { id: 3, name: 'PPP' },
-  { id: 4, name: 'ANP' },
-  { id: 5, name: 'JUI-F' },
-  { id: 6, name: 'MQM' },
-  { id: 7, name: 'Independent' }
-];
-
-// Mock constituencies
-const mockConstituencies = Array.from({ length: 50 }, (_, index) => ({
-  id: index + 1,
-  name: `NA-${index + 1}`
-}));
-
 export default function AddCandidate() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [constituencies, setConstituencies] = useState<candidateService.Constituency[]>([]);
+
+  // API fields
   const [name, setName] = useState('');
+  const [party, setParty] = useState('');
+  const [constituencyId, setConstituencyId] = useState<string>('');
+
+  // UI-only fields (not sent to API)
   const [districtId, setDistrictId] = useState('');
-  const [partyId, setPartyId] = useState('');
-  const [constituencyId, setConstituencyId] = useState('');
   const [position, setPosition] = useState('');
   const [area, setArea] = useState('');
   const [division, setDivision] = useState('');
@@ -38,23 +35,81 @@ export default function AddCandidate() {
   const [nic, setNic] = useState('');
   const [address, setAddress] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Fetch constituencies
+  useEffect(() => {
+    fetchConstituencies();
+  }, []);
+
+  const fetchConstituencies = async () => {
+    try {
+      if (USE_MOCK_DATA) {
+        // Mock constituencies
+        const mockConstituencies: candidateService.Constituency[] = Array.from({ length: 50 }, (_, index) => ({
+          id: index + 1,
+          name: `NA-${index + 1}`
+        }));
+        setConstituencies(mockConstituencies);
+      } else {
+        // Real API call
+        const response = await candidateService.listConstituencies();
+        if (response.success && response.data) {
+          setConstituencies(response.data);
+        } else {
+          // Fallback to mock
+          const mockConstituencies: candidateService.Constituency[] = Array.from({ length: 50 }, (_, index) => ({
+            id: index + 1,
+            name: `NA-${index + 1}`
+          }));
+          setConstituencies(mockConstituencies);
+        }
+      }
+    } catch (err: any) {
+      console.error('Error fetching constituencies:', err);
+      // Fallback to mock
+      const mockConstituencies: candidateService.Constituency[] = Array.from({ length: 50 }, (_, index) => ({
+        id: index + 1,
+        name: `NA-${index + 1}`
+      }));
+      setConstituencies(mockConstituencies);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Add Candidate:', {
-      name,
-      district_id: districtId,
-      party_id: partyId,
-      constituency_id: constituencyId,
-      position,
-      area,
-      division,
-      phone,
-      mobile,
-      email,
-      nic,
-      address
-    });
-    alert('Add Candidate functionality will be implemented with backend API');
+    
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Map form data to API format (only documented fields)
+      const apiData: candidateService.CreateCandidateRequest = {
+        name: name || '',
+        party: party || undefined,
+        constituencyId: constituencyId ? parseInt(constituencyId, 10) : undefined,
+      };
+
+      if (USE_MOCK_DATA) {
+        // Mock create
+        await new Promise(resolve => setTimeout(resolve, 500));
+        alert('Candidate added successfully! (Mock)');
+        navigate('/admin/candidates');
+      } else {
+        // Real API call
+        const response = await candidateService.createCandidate(apiData);
+
+        if (response.success && response.data) {
+          alert('Candidate added successfully!');
+          navigate('/admin/candidates');
+        } else {
+          setError(response.message || 'Failed to create candidate');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error creating candidate:', err);
+      setError(err.response?.data?.error?.message || 'Failed to create candidate. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -67,7 +122,14 @@ export default function AddCandidate() {
                 Show all candidates
               </Link>
               <p className="card-title"><strong>Add new candidate</strong></p>
-              <p className="card-description"></p>
+
+              {/* Error Message */}
+              {error && (
+                <div className="alert alert-danger" role="alert">
+                  <i className="ti-alert-circle mr-2"></i>
+                  <strong>Error:</strong> {error}
+                </div>
+              )}
 
               <form
                 className="form-sample"
@@ -75,10 +137,13 @@ export default function AddCandidate() {
                 encType="multipart/form-data"
                 id="record_note_form"
               >
+                {/* API Fields */}
                 <div className="row">
-                  <div className="col-md-3">
+                  <div className="col-md-4">
                     <div className="form-group">
-                      <label>Candidate Name</label>
+                      <label>
+                        Candidate Name <span className="text-danger">*</span>
+                      </label>
                       <input
                         type="text"
                         name="name"
@@ -90,9 +155,55 @@ export default function AddCandidate() {
                       />
                     </div>
                   </div>
+                  <div className="col-md-4">
+                    <div className="form-group">
+                      <label>Party</label>
+                      <input
+                        type="text"
+                        name="party"
+                        id="party"
+                        value={party}
+                        className="form-control"
+                        onChange={(e) => setParty(e.target.value)}
+                        placeholder="e.g., PTI, PML-N, PPP"
+                      />
+                    </div>
+                  </div>
+                  <div className="col-md-4">
+                    <div className="form-group">
+                      <label>Constituency</label>
+                      <select
+                        name="constituencyId"
+                        id="constituency_id"
+                        className="js-example-basic-single w-100 form-control form-control-lg"
+                        value={constituencyId}
+                        onChange={(e) => setConstituencyId(e.target.value)}
+                      >
+                        <option value="">Select Constituency</option>
+                        {constituencies.map((constituency) => (
+                          <option key={constituency.id} value={constituency.id.toString()}>
+                            {constituency.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* UI-Only Fields (Not sent to API) */}
+                <div className="row">
+                  <div className="col-md-12">
+                    <hr />
+                    <small className="text-muted">
+                      <strong>Note:</strong> The following fields are UI-only and not sent to the API (not documented in API_INTEGRATION_GUIDE.md):
+                    </small>
+                  </div>
+                </div>
+
+                <div className="row">
                   <div className="col-md-3">
                     <div className="form-group">
-                      <label>District</label>
+                      <label>District <small className="text-muted">(UI-only)</small></label>
                       <select
                         name="district_id"
                         id="district_id"
@@ -111,45 +222,7 @@ export default function AddCandidate() {
                   </div>
                   <div className="col-md-3">
                     <div className="form-group">
-                      <label>Party</label>
-                      <select
-                        name="party_id"
-                        id="party_id"
-                        className="js-example-basic-single w-100 form-control form-control-lg"
-                        value={partyId}
-                        onChange={(e) => setPartyId(e.target.value)}
-                      >
-                        <option value="">Select</option>
-                        {mockParties.map((party) => (
-                          <option key={party.id} value={party.id.toString()}>
-                            {party.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <div className="col-md-3">
-                    <div className="form-group">
-                      <label>Constituency</label>
-                      <select
-                        name="constituency_id"
-                        id="constituency_id"
-                        className="js-example-basic-single w-100 form-control form-control-lg"
-                        value={constituencyId}
-                        onChange={(e) => setConstituencyId(e.target.value)}
-                      >
-                        <option value="">Select</option>
-                        {mockConstituencies.map((constituency) => (
-                          <option key={constituency.id} value={constituency.id.toString()}>
-                            {constituency.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <div className="col-md-3">
-                    <div className="form-group">
-                      <label>Position</label>
+                      <label>Position <small className="text-muted">(UI-only)</small></label>
                       <input
                         type="text"
                         name="position"
@@ -162,7 +235,7 @@ export default function AddCandidate() {
                   </div>
                   <div className="col-md-3">
                     <div className="form-group">
-                      <label>Area</label>
+                      <label>Area <small className="text-muted">(UI-only)</small></label>
                       <input
                         type="text"
                         name="area"
@@ -175,7 +248,7 @@ export default function AddCandidate() {
                   </div>
                   <div className="col-md-3">
                     <div className="form-group">
-                      <label>Division</label>
+                      <label>Division <small className="text-muted">(UI-only)</small></label>
                       <input
                         type="text"
                         name="division"
@@ -188,7 +261,7 @@ export default function AddCandidate() {
                   </div>
                   <div className="col-md-3">
                     <div className="form-group">
-                      <label>Phone</label>
+                      <label>Phone <small className="text-muted">(UI-only)</small></label>
                       <input
                         type="number"
                         name="phone"
@@ -201,7 +274,7 @@ export default function AddCandidate() {
                   </div>
                   <div className="col-md-3">
                     <div className="form-group">
-                      <label>Mobile</label>
+                      <label>Mobile <small className="text-muted">(UI-only)</small></label>
                       <input
                         type="number"
                         name="mobile"
@@ -214,7 +287,7 @@ export default function AddCandidate() {
                   </div>
                   <div className="col-md-3">
                     <div className="form-group">
-                      <label>Email</label>
+                      <label>Email <small className="text-muted">(UI-only)</small></label>
                       <input
                         type="email"
                         name="email"
@@ -227,7 +300,7 @@ export default function AddCandidate() {
                   </div>
                   <div className="col-md-3">
                     <div className="form-group">
-                      <label>NIC</label>
+                      <label>NIC <small className="text-muted">(UI-only)</small></label>
                       <input
                         type="number"
                         name="nic"
@@ -240,7 +313,7 @@ export default function AddCandidate() {
                   </div>
                   <div className="col-md-6">
                     <div className="form-group">
-                      <label>Address</label>
+                      <label>Address <small className="text-muted">(UI-only)</small></label>
                       <input
                         type="text"
                         name="address"
@@ -253,9 +326,23 @@ export default function AddCandidate() {
                   </div>
                 </div>
 
-                <button type="submit" className="btn btn-success mr-2">
-                  Save
+                <button 
+                  type="submit" 
+                  className="btn btn-success mr-2"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>
+                      Submitting...
+                    </>
+                  ) : (
+                    'Save'
+                  )}
                 </button>
+                <Link to="/admin/candidates" className="btn btn-light">
+                  Cancel
+                </Link>
               </form>
             </div>
           </div>

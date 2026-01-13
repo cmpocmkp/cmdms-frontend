@@ -16,6 +16,8 @@ import Select from 'react-select';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
+import * as dashboardService from '../../lib/services/dashboardService';
+import { USE_MOCK_DATA } from '../../lib/api';
 import { 
   mockDashboardDepartments, 
   moduleRelations,
@@ -35,6 +37,12 @@ export default function Dashboard() {
   const tableRef = useRef<HTMLTableElement>(null);
   const dataTableRef = useRef<any>(null);
   
+  // API data state
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [dashboardStats, setDashboardStats] = useState<dashboardService.DashboardStatistics | null>(null);
+  const [departmentPerformance, setDepartmentPerformance] = useState<dashboardService.DepartmentPerformance[]>([]);
+  
   // Module select options
   const moduleOptions = moduleRelations.map(module => ({
     value: module,
@@ -48,9 +56,73 @@ export default function Dashboard() {
     { value: 'district_administrations', label: 'District Administrations' },
   ];
   
+  // Fetch dashboard data from API
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+  
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      if (USE_MOCK_DATA) {
+        // Use mock data
+        setDashboardStats({
+          totalMeetings: 150,
+          totalMinutes: 450,
+          pendingTasks: 75,
+          completedTasks: 200,
+          overdueItems: 15,
+        });
+        setDepartmentPerformance([]);
+      } else {
+        // Fetch dashboard statistics
+        const statsResponse = await dashboardService.getDashboardStatistics();
+        if (statsResponse.success && statsResponse.data) {
+          setDashboardStats(statsResponse.data);
+        }
+        
+        // Fetch department performance
+        const deptResponse = await dashboardService.getDepartmentPerformance();
+        if (deptResponse.success && deptResponse.data) {
+          // Ensure data is an array
+          const deptData = Array.isArray(deptResponse.data) ? deptResponse.data : [];
+          setDepartmentPerformance(deptData);
+        } else {
+          // Set empty array if no data or error
+          setDepartmentPerformance([]);
+        }
+      }
+    } catch (err: any) {
+      console.error('Error fetching dashboard data:', err);
+      setError(err.response?.data?.error?.message || 'Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Map API department performance to dashboard format
+  const apiDepartments: DashboardDepartment[] = useMemo(() => {
+    // Ensure departmentPerformance is an array before mapping
+    if (!Array.isArray(departmentPerformance)) {
+      return [];
+    }
+    return departmentPerformance.map((dept) => ({
+      id: dept.departmentId,
+      name: dept.departmentName,
+      total_tasks_count: dept.totalTasks,
+      total_completed_count: dept.completed,
+      total_on_target_count: dept.totalTasks - dept.completed - dept.overdue, // Calculate on-target
+      total_overdue_count: dept.overdue,
+    }));
+  }, [departmentPerformance]);
+  
   // Filter departments based on selected filters
   const filteredDepartments = useMemo(() => {
-    let filtered = [...mockDashboardDepartments];
+    // Use API data if available, otherwise fall back to mock
+    const departments = departmentPerformance.length > 0 ? apiDepartments : mockDashboardDepartments;
+    let filtered = [...departments];
     
     // Apply department filter
     if (departmentFilter === 'district_administrations') {
@@ -66,52 +138,101 @@ export default function Dashboard() {
     }
     
     return filtered;
-  }, [departmentFilter]);
+  }, [departmentFilter, apiDepartments, departmentPerformance]);
   
   // Recalculate totals based on filtered departments
   const overallTotals = useMemo(() => {
     return calculateTotals(filteredDepartments);
   }, [filteredDepartments]);
   
-  // Summary cards data
-  const summaryCards = [
-    {
-      borderColor: '#3282FF',
-      title: 'Tasks',
-      minutesClass: 'total_minutes',
-      percentClass: '',
-      count: overallTotals.total_tasks,
-      percent: 0,
-      icon: 'ti-list'
-    },
-    {
-      borderColor: '#0E8160',
-      title: 'Completed',
-      minutesClass: 'completed_minutes',
-      percentClass: 'compl_percent',
-      count: overallTotals.total_completed,
-      percent: overallTotals.completed_percentage,
-      icon: 'ti-check'
-    },
-    {
-      borderColor: '#1DC39F',
-      title: 'On Target',
-      minutesClass: 'on_target_minutes',
-      percentClass: 'on_percent',
-      count: overallTotals.total_on_target,
-      percent: overallTotals.on_target_percentage,
-      icon: 'ti-target'
-    },
-    {
-      borderColor: '#E74039',
-      title: 'Overdue',
-      minutesClass: 'overdue_minutes',
-      percentClass: 'over_percent',
-      count: overallTotals.total_overdue,
-      percent: overallTotals.overdue_percentage,
-      icon: 'ti-timer'
-    },
-  ];
+  // Summary cards data - use API stats if available, otherwise use calculated totals
+  const summaryCards = useMemo(() => {
+    if (dashboardStats && !USE_MOCK_DATA) {
+      // Use API dashboard statistics
+      const totalTasks = dashboardStats.pendingTasks + dashboardStats.completedTasks;
+      const completedPercent = totalTasks > 0 ? Math.round((dashboardStats.completedTasks / totalTasks) * 100) : 0;
+      const overduePercent = totalTasks > 0 ? Math.round((dashboardStats.overdueItems / totalTasks) * 100) : 0;
+      
+      return [
+        {
+          borderColor: '#3282FF',
+          title: 'Total Tasks',
+          minutesClass: 'total_minutes',
+          percentClass: '',
+          count: totalTasks,
+          percent: 0,
+          icon: 'ti-list'
+        },
+        {
+          borderColor: '#0E8160',
+          title: 'Completed',
+          minutesClass: 'completed_minutes',
+          percentClass: 'compl_percent',
+          count: dashboardStats.completedTasks,
+          percent: completedPercent,
+          icon: 'ti-check'
+        },
+        {
+          borderColor: '#1DC39F',
+          title: 'Pending',
+          minutesClass: 'on_target_minutes',
+          percentClass: 'on_percent',
+          count: dashboardStats.pendingTasks,
+          percent: 100 - completedPercent - overduePercent,
+          icon: 'ti-clock'
+        },
+        {
+          borderColor: '#E74039',
+          title: 'Overdue',
+          minutesClass: 'overdue_minutes',
+          percentClass: 'over_percent',
+          count: dashboardStats.overdueItems,
+          percent: overduePercent,
+          icon: 'ti-timer'
+        },
+      ];
+    } else {
+      // Use calculated totals from departments
+      return [
+        {
+          borderColor: '#3282FF',
+          title: 'Tasks',
+          minutesClass: 'total_minutes',
+          percentClass: '',
+          count: overallTotals.total_tasks,
+          percent: 0,
+          icon: 'ti-list'
+        },
+        {
+          borderColor: '#0E8160',
+          title: 'Completed',
+          minutesClass: 'completed_minutes',
+          percentClass: 'compl_percent',
+          count: overallTotals.total_completed,
+          percent: overallTotals.completed_percentage,
+          icon: 'ti-check'
+        },
+        {
+          borderColor: '#1DC39F',
+          title: 'On Target',
+          minutesClass: 'on_target_minutes',
+          percentClass: 'on_percent',
+          count: overallTotals.total_on_target,
+          percent: overallTotals.on_target_percentage,
+          icon: 'ti-target'
+        },
+        {
+          borderColor: '#E74039',
+          title: 'Overdue',
+          minutesClass: 'overdue_minutes',
+          percentClass: 'over_percent',
+          count: overallTotals.total_overdue,
+          percent: overallTotals.overdue_percentage,
+          icon: 'ti-timer'
+        },
+      ];
+    }
+  }, [dashboardStats, overallTotals]);
   
   // Chart data
   const chartData = {
@@ -487,6 +608,33 @@ export default function Dashboard() {
       <div className="content-wrapper">
         <div className="card border-0 shadow-sm" style={{ background: 'transparent', boxShadow: 'none' }}>
           <div className="card-body p-0">
+            {/* Loading State */}
+            {loading && (
+              <div className="text-center p-5">
+                <div className="spinner-border text-primary" role="status">
+                  <span className="sr-only">Loading...</span>
+                </div>
+                <p className="mt-2 text-muted">Loading dashboard data...</p>
+              </div>
+            )}
+            
+            {/* Error State */}
+            {error && !loading && (
+              <div className="alert alert-danger m-4" role="alert">
+                <i className="ti-alert-circle mr-2"></i>
+                <strong>Error:</strong> {error}
+                <button 
+                  className="btn btn-sm btn-outline-danger ml-3" 
+                  onClick={fetchDashboardData}
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+            
+            {/* Dashboard Content */}
+            {!loading && !error && (
+              <>
             {/* Summary Cards Section */}
             <div className="row mb-4">
               <div className="col-md-12 d-flex justify-content-center flex-wrap gap-3">
@@ -687,6 +835,8 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
+            </>
+            )}
           </div>
         </div>
       </div>

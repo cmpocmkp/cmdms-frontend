@@ -1,32 +1,87 @@
 /**
  * Departments List Page - Admin Module
  * EXACT replica of admin/departments/index.blade.php from old CMDMS
- * Enhanced with search and pagination
+ * Integrated with real API following API_INTEGRATION_GUIDE.md
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { mockAdminDepartments, type Department } from '../../../lib/mocks/data/adminDepartments';
+import * as departmentService from '../../../lib/services/departmentService';
+import { USE_MOCK_DATA } from '../../../lib/api';
+import { mockAdminDepartments } from '../../../lib/mocks/data/adminDepartments';
+
+interface DisplayDepartment {
+  id: number;
+  name: string;
+  district_name?: string;
+  type_label?: string;
+  parent_name?: string;
+}
 
 export default function DepartmentsList() {
-  const [departments] = useState<Department[]>(mockAdminDepartments);
+  const [departments, setDepartments] = useState<DisplayDepartment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
-  const hasCreatePermission = true; // Mock: assuming user has permission
 
-  // Filter departments based on search
-  const filteredDepartments = useMemo(() => {
-    if (!searchTerm) return departments;
-    
-    const search = searchTerm.toLowerCase();
-    return departments.filter(dept => 
-      dept.name.toLowerCase().includes(search) ||
-      dept.district_name?.toLowerCase().includes(search) ||
-      dept.type_label?.toLowerCase().includes(search) ||
-      dept.parent_name?.toLowerCase().includes(search)
-    );
-  }, [departments, searchTerm]);
+  // Fetch departments from API
+  useEffect(() => {
+    fetchDepartments();
+  }, [searchTerm]);
+
+  const fetchDepartments = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (USE_MOCK_DATA) {
+        // Use mock data as fallback
+        setDepartments(mockAdminDepartments as DisplayDepartment[]);
+      } else {
+        // Real API call with search
+        const response = await departmentService.listDepartments({
+          search: searchTerm || undefined,
+        });
+
+        if (response.success && response.data) {
+          // Map API response to display format
+          // response.data is Department[]
+          const mappedDepartments: DisplayDepartment[] = response.data.map((dept) => ({
+            id: dept.id,
+            name: dept.name,
+            district_name: undefined, // Not in API response
+            type_label: undefined, // Not in API response
+            parent_name: undefined, // Not in API response
+          }));
+
+          setDepartments(mappedDepartments);
+        } else {
+          setError('Failed to load departments');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error fetching departments:', err);
+      setError(err.response?.data?.error?.message || 'Failed to load departments');
+      // Fallback to mock data on error if in development
+      if (import.meta.env.DEV) {
+        setDepartments(mockAdminDepartments as DisplayDepartment[]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Client-side filtering for mock data or when API doesn't support search
+  const filteredDepartments = searchTerm
+    ? departments.filter(dept =>
+        dept.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        dept.district_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        dept.type_label?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        dept.parent_name?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : departments;
 
   // Calculate pagination
   const totalPages = Math.ceil(filteredDepartments.length / itemsPerPage);
@@ -52,15 +107,13 @@ export default function DepartmentsList() {
     <div className="content-wrapper">
       <div className="card">
         <div className="card-body">
-          {hasCreatePermission && (
-            <Link 
-              to="/admin/departments/create" 
-              style={{ float: 'right' }}
-              className="btn btn-primary mb-2"
-            >
-              Add new department/board
-            </Link>
-          )}
+          <Link 
+            to="/admin/departments/create" 
+            style={{ float: 'right' }}
+            className="btn btn-primary mb-2"
+          >
+            Add new department/board
+          </Link>
           <h4 className="card-title">All Departments/Boards</h4>
           
           {/* Search Section */}
@@ -80,24 +133,37 @@ export default function DepartmentsList() {
               </span>
             </div>
           </div>
+
+          {error && (
+            <div className="alert alert-danger" role="alert">
+              {error}
+            </div>
+          )}
           
-          <div className="row">
-            <div className="col-12">
-              <div className="table-responsive">
-                <table id="order-listing" className="table table-striped">
-                  <thead style={{ background: 'rgb(37, 136, 95) !important', color: 'white !important' }}>
-                    <tr>
-                      <th>S.NO.</th>
-                      <th>Name</th>
-                      <th>District</th>
-                      <th>Type</th>
-                      <th>Parent</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedDepartments.length > 0 ? (
-                      paginatedDepartments.map((department, index) => (
+          {loading ? (
+            <div className="text-center py-4">
+              <div className="spinner-border" role="status">
+                <span className="sr-only">Loading...</span>
+              </div>
+            </div>
+          ) : (
+            <div className="row">
+              <div className="col-12">
+                <div className="table-responsive">
+                  <table id="order-listing" className="table table-striped">
+                    <thead style={{ background: 'rgb(37, 136, 95) !important', color: 'white !important' }}>
+                      <tr>
+                        <th>S.NO.</th>
+                        <th>Name</th>
+                        <th>District</th>
+                        <th>Type</th>
+                        <th>Parent</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedDepartments.length > 0 ? (
+                        paginatedDepartments.map((department, index) => (
                         <tr key={department.id}>
                           <td>{startIndex + index + 1}</td>
                           <td>{department.name || '-'}</td>
@@ -124,9 +190,10 @@ export default function DepartmentsList() {
               </div>
             </div>
           </div>
+          )}
 
           {/* Pagination Section */}
-          {totalPages > 1 && (
+          {!loading && totalPages > 1 && (
             <div className="row mt-3">
               <div className="col-12">
                 <nav>

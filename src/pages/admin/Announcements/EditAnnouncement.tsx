@@ -1,84 +1,225 @@
 /**
  * Edit Announcement - Admin Module
  * EXACT replica of admin/announcements/edit.blade.php from old CMDMS
+ * Integrated with real API following API_INTEGRATION_GUIDE.md
+ * 
+ * ⚠️ IMPORTANT: "Announcement Details" functionality (sub-items) is NOT documented in API_INTEGRATION_GUIDE.md
+ * The API only provides:
+ * - Update Announcement (main announcement fields)
+ * - Create Announcement Detail Response (but no endpoints for details themselves)
+ * 
+ * Missing API endpoints (not documented):
+ * - GET /api/announcements/:id/details - List announcement details
+ * - GET /api/announcements/details/:id - Get announcement detail
+ * - POST /api/announcements/:id/details - Create announcement detail
+ * - PATCH /api/announcements/details/:id - Update announcement detail
+ * - DELETE /api/announcements/details/:id - Delete announcement detail
+ * - GET /api/announcements/details/:id/responses - List announcement detail responses
  */
 
-import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { mockAnnouncements } from '../../../lib/mocks/data/announcements';
-import { mockDepartments } from '../../../lib/mocks/data/departments';
-import { AddAnnouncementDetailModal } from './components/AddAnnouncementDetailModal';
-import { EditAnnouncementDetailModal } from './components/EditAnnouncementDetailModal';
-import { ResponsibleDepartmentsModal } from './components/ResponsibleDepartmentsModal';
+import { useState, useEffect } from 'react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import * as announcementService from '../../../lib/services/announcementService';
+import * as commonService from '../../../lib/services/commonService';
+import { mapAnnouncementToDisplay, mapDisplayToUpdateRequest } from '../../../lib/utils/announcementMapper';
+import { USE_MOCK_DATA } from '../../../lib/api';
+import { mockAdminDepartments } from '../../../lib/mocks/data/adminDepartments';
 
 export default function EditAnnouncement() {
   const { id } = useParams<{ id: string }>();
-  const announcement = mockAnnouncements.find(a => a.id === Number(id));
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDepartmentsModal, setShowDepartmentsModal] = useState(false);
-  const [selectedDetail, setSelectedDetail] = useState<any>(null);
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState<any>(null);
+  const [departments, setDepartments] = useState<Array<{ id: number; name: string }>>([]);
+  const [updating, setUpdating] = useState(false);
 
   const [formData, setFormData] = useState({
-    district_id: announcement?.district_id || '',
-    venue: announcement?.venue || '',
-    date: announcement?.date || new Date().toISOString().split('T')[0],
+    title: '',
+    description: '',
+    content: '',
+    type: 'general',
+    priority: 'medium',
+    startDate: '',
+    endDate: '',
+    targetAudience: '',
+    departmentIds: [] as string[],
     attachments: [] as File[]
   });
+
+  // Fetch announcement and departments
+  useEffect(() => {
+    if (id) {
+      fetchAnnouncement();
+      fetchDepartments();
+    }
+  }, [id]);
+
+  const fetchAnnouncement = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (USE_MOCK_DATA) {
+        // Mock data - would need to be converted
+        setAnnouncement({ id: Number(id), title: 'Mock Announcement' });
+        setFormData({
+          title: 'Mock Announcement',
+          description: '',
+          content: '',
+          type: 'general',
+          priority: 'medium',
+          startDate: new Date().toISOString().split('T')[0],
+          endDate: '',
+          targetAudience: '',
+          departmentIds: [],
+          attachments: []
+        });
+      } else {
+        const response = await announcementService.getAnnouncement(Number(id));
+        
+        if (response.success && response.data) {
+          const displayAnnouncement = mapAnnouncementToDisplay(response.data);
+          setAnnouncement(displayAnnouncement);
+          setFormData({
+            title: displayAnnouncement.title || '',
+            description: displayAnnouncement.description || '',
+            content: displayAnnouncement.content || '',
+            type: displayAnnouncement.type || 'general',
+            priority: displayAnnouncement.priority || 'medium',
+            startDate: displayAnnouncement.startDate || '',
+            endDate: displayAnnouncement.endDate || '',
+            targetAudience: displayAnnouncement.targetAudience || '',
+            departmentIds: displayAnnouncement.departmentIds?.map(id => id.toString()) || [],
+            attachments: []
+          });
+        } else {
+          setError(response.message || 'Announcement not found');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error fetching announcement:', err);
+      setError(err.response?.data?.error?.message || 'Failed to load announcement');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    try {
+      if (USE_MOCK_DATA) {
+        setDepartments(mockAdminDepartments);
+      } else {
+        const response = await commonService.getDepartmentsDropdown();
+        if (response.success && response.data) {
+          setDepartments(response.data);
+        } else {
+          setDepartments([]);
+        }
+      }
+    } catch (err: any) {
+      console.error('Error fetching departments:', err);
+      setDepartments(mockAdminDepartments); // Fallback
+    }
+  };
+
+  const handleMultiSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const options = e.target.options;
+    const selected: string[] = [];
+    for (let i = 0; i < options.length; i++) {
+      if (options[i].selected) {
+        selected.push(options[i].value);
+      }
+    }
+    setFormData(prev => ({
+      ...prev,
+      departmentIds: selected
+    }));
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      setUpdating(true);
+      setError(null);
+
+      // Map form data to API format
+      const updateData = mapDisplayToUpdateRequest({
+        title: formData.title,
+        description: formData.description,
+        content: formData.content,
+        type: formData.type,
+        priority: formData.priority,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        targetAudience: formData.targetAudience,
+        departmentIds: formData.departmentIds.map(id => parseInt(id, 10)),
+      });
+
+      if (USE_MOCK_DATA) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        alert('Announcement updated successfully! (Mock)');
+        navigate('/admin/announcements');
+      } else {
+        const response = await announcementService.updateAnnouncement(Number(id), updateData);
+
+        if (response.success && response.data) {
+          alert('Announcement updated successfully!');
+          navigate('/admin/announcements');
+        } else {
+          setError(response.message || 'Failed to update announcement');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error updating announcement:', err);
+      setError(err.response?.data?.error?.message || 'Failed to update announcement. Please try again.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // Mock announcement details - NOTE: This functionality is NOT documented in API_INTEGRATION_GUIDE.md
+  // The API only provides "Create Announcement Detail Response" but no endpoints for details themselves
+  // const announcementDetails: any[] = []; // Empty array - details functionality not available via API
+
+  if (loading) {
+    return (
+      <div className="content-wrapper">
+        <div className="text-center p-5">
+          <div className="spinner-border text-primary" role="status">
+            <span className="sr-only">Loading...</span>
+          </div>
+          <p className="mt-2 text-muted">Loading announcement...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !announcement) {
+    return (
+      <div className="content-wrapper">
+        <div className="alert alert-danger" role="alert">
+          <i className="ti-alert-circle mr-2"></i>
+          <strong>Error:</strong> {error}
+          <Link to="/admin/announcements" className="btn btn-sm btn-outline-danger ml-3">
+            Back to List
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (!announcement) {
     return (
       <div className="content-wrapper">
         <div className="alert alert-danger">Announcement not found</div>
+        <Link to="/admin/announcements" className="btn btn-outline-primary">
+          Back to List
+        </Link>
       </div>
     );
   }
-
-  const handleUpdate = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Update announcement:', formData);
-    alert('Update announcement functionality will be implemented with backend API');
-  };
-
-  const handleEditDetail = (detail: any) => {
-    setSelectedDetail(detail);
-    setShowEditModal(true);
-  };
-
-  const handleDeleteDetail = (detailId: number) => {
-    if (confirm('Are you sure you want to delete? It will be permanently deleted.')) {
-      console.log('Delete announcement detail:', detailId);
-      alert('Delete functionality will be implemented with backend API');
-    }
-  };
-
-  const handleViewDepartments = (detail: any) => {
-    setSelectedDetail(detail);
-    setShowDepartmentsModal(true);
-  };
-
-  // Mock announcement details
-  const announcementDetails = [
-    {
-      id: 1,
-      title: 'Announcement regarding infrastructure development',
-      progress: 'Work in progress, 60% completed',
-      other_departments: [
-        { id: 1, name: 'Health Department', assigned_status: 'Completed', badge_class: 'badge-success' },
-        { id: 2, name: 'Education Department', assigned_status: 'On Target', badge_class: 'badge-info' }
-      ],
-      timeline: '2025-01-15',
-    },
-    {
-      id: 2,
-      title: 'Public welfare scheme announcement',
-      progress: 'Initial planning stage',
-      other_departments: [
-        { id: 3, name: 'Social Welfare', assigned_status: 'Overdue', badge_class: 'badge-danger' }
-      ],
-      timeline: '2025-02-01',
-    }
-  ];
 
   return (
     <div className="content-wrapper">
@@ -101,9 +242,13 @@ export default function EditAnnouncement() {
                       >
                         <i className="ti-arrow-left mr-1"></i>Back
                       </Link>
+                      {/* Note: Add Detail button disabled - API endpoints not documented */}
                       <button
                         className="btn btn-outline-primary btn-fw"
-                        onClick={() => setShowAddModal(true)}
+                        onClick={() => {
+                          alert('⚠️ Announcement Details functionality is NOT documented in API_INTEGRATION_GUIDE.md. Please contact backend team to add the required endpoints.');
+                        }}
+                        title="API endpoints for announcement details are not documented"
                       >
                         <i className="fa fa-plus mr-1"></i>
                         Add New Detail
@@ -114,32 +259,43 @@ export default function EditAnnouncement() {
               </div>
             </div>
             <div className="card-body">
-              {/* Announcement Details Table */}
+              {/* Error Message */}
+              {error && (
+                <div className="alert alert-danger" role="alert">
+                  <i className="ti-alert-circle mr-2"></i>
+                  <strong>Error:</strong> {error}
+                </div>
+              )}
+
+              {/* Announcement Info Table */}
               <div className="table-responsive mt-2">
                 <table className="table table-bordered table-striped table-sm w-100 mb-3">
                   <tbody>
                     <tr>
-                      <th className="w-25">District</th>
-                      <td className="text-primary">{announcement.district_name}</td>
+                      <th className="w-25">Title</th>
+                      <td className="text-primary">{announcement.title}</td>
                     </tr>
-                    <tr>
-                      <th>Date</th>
-                      <td className="text-primary">
-                        {new Date(announcement.date).toLocaleDateString('en-GB')}
-                      </td>
-                    </tr>
-                    {(announcement as any).attachments && (announcement as any).attachments.length > 0 && (
+                    {announcement.startDate && (
                       <tr>
-                        <th>Attachments</th>
+                        <th>Start Date</th>
+                        <td className="text-primary">
+                          {new Date(announcement.startDate).toLocaleDateString('en-GB')}
+                        </td>
+                      </tr>
+                    )}
+                    {announcement.endDate && (
+                      <tr>
+                        <th>End Date</th>
+                        <td className="text-primary">
+                          {new Date(announcement.endDate).toLocaleDateString('en-GB')}
+                        </td>
+                      </tr>
+                    )}
+                    {announcement.departments && announcement.departments.length > 0 && (
+                      <tr>
+                        <th>Departments</th>
                         <td>
-                          <div className="d-flex flex-wrap gap-2">
-                            {(announcement as any).attachments.map((file: string, idx: number) => (
-                              <a key={idx} href="#" className="btn btn-sm btn-outline-primary">
-                                <i className="ti-file mr-1"></i>
-                                {file}
-                              </a>
-                            ))}
-                          </div>
+                          {announcement.departments.map((d: { id: number; name: string }) => d.name).join(', ')}
                         </td>
                       </tr>
                     )}
@@ -155,101 +311,168 @@ export default function EditAnnouncement() {
                 onSubmit={handleUpdate}
                 encType="multipart/form-data"
               >
-                <input type="hidden" name="modified_by" value="1" />
-                <input type="hidden" name="type" id="type" value="cm" />
-
                 <div className="row">
-                  {/* Districts */}
-                  <div className="col-md-3">
+                  <div className="col-md-12">
                     <div className="form-group">
-                      <label htmlFor="district_id">Districts</label>
-                      <select
+                      <label htmlFor="title">Title <span className="text-danger">*</span></label>
+                      <input
+                        type="text"
+                        name="title"
+                        id="title"
                         className="form-control"
-                        name="district_id"
-                        id="district_id"
-                        value={formData.district_id}
-                        onChange={(e) => setFormData({ ...formData, district_id: e.target.value })}
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                         required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="col-md-12">
+                    <div className="form-group">
+                      <label htmlFor="description">Description</label>
+                      <textarea
+                        name="description"
+                        id="description"
+                        rows={4}
+                        className="form-control"
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="col-md-12">
+                    <div className="form-group">
+                      <label htmlFor="content">Content</label>
+                      <textarea
+                        name="content"
+                        id="content"
+                        rows={6}
+                        className="form-control"
+                        value={formData.content}
+                        onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="col-md-6">
+                    <div className="form-group">
+                      <label htmlFor="type">Type</label>
+                      <select
+                        name="type"
+                        id="type"
+                        className="form-control"
+                        value={formData.type}
+                        onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                       >
-                        {mockDepartments.map((district: any) => (
-                          <option key={district.id} value={district.id}>
-                            {district.name}
-                          </option>
-                        ))}
+                        <option value="general">General</option>
+                        <option value="policy">Policy</option>
+                        <option value="event">Event</option>
+                        <option value="notice">Notice</option>
                       </select>
                     </div>
                   </div>
 
-                  {/* Visit Date */}
-                  <div className="col-md-3">
+                  <div className="col-md-6">
                     <div className="form-group">
-                      <label htmlFor="date">Visit Date</label>
+                      <label htmlFor="priority">Priority</label>
+                      <select
+                        name="priority"
+                        id="priority"
+                        className="form-control"
+                        value={formData.priority}
+                        onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                      >
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="col-md-6">
+                    <div className="form-group">
+                      <label htmlFor="startDate">Start Date</label>
                       <input
                         type="date"
-                        name="date"
-                        id="date"
-                        value={formData.date}
-                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                        name="startDate"
+                        id="startDate"
                         className="form-control"
-                        required
+                        value={formData.startDate}
+                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                       />
                     </div>
                   </div>
 
-                  {/* Attach Documents */}
-                  <div className="col-md-3">
+                  <div className="col-md-6">
                     <div className="form-group">
-                      <label htmlFor="attachment">Attach Documents <small>(if any)</small></label>
+                      <label htmlFor="endDate">End Date</label>
                       <input
-                        type="file"
-                        name="attachment[]"
-                        id="attachment"
-                        className="file-upload-default"
-                        multiple
-                        onChange={(e) => {
-                          if (e.target.files) {
-                            setFormData({ ...formData, attachments: Array.from(e.target.files) });
-                          }
-                        }}
+                        type="date"
+                        name="endDate"
+                        id="endDate"
+                        className="form-control"
+                        value={formData.endDate}
+                        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                       />
-                      <div className="input-group">
-                        <input
-                          type="text"
-                          className="form-control file-upload-info"
-                          disabled
-                          placeholder="Upload files"
-                          value={formData.attachments.length > 0 ? `${formData.attachments.length} file(s) selected` : ''}
-                        />
-                        <span className="input-group-append">
-                          <button className="file-upload-browse btn btn-success" type="button">
-                            Select Files
-                          </button>
-                        </span>
-                      </div>
                     </div>
                   </div>
 
-                  {/* Venue */}
-                  <div className="col-md-4">
+                  <div className="col-md-12">
                     <div className="form-group">
-                      <label htmlFor="venue">Venue</label>
+                      <label htmlFor="targetAudience">Target Audience</label>
                       <input
                         type="text"
-                        name="venue"
-                        id="venue"
-                        value={formData.venue}
-                        onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
+                        name="targetAudience"
+                        id="targetAudience"
                         className="form-control"
-                        required
+                        value={formData.targetAudience}
+                        onChange={(e) => setFormData({ ...formData, targetAudience: e.target.value })}
+                        placeholder="e.g., All Departments, Public, etc."
                       />
+                    </div>
+                  </div>
+
+                  <div className="col-md-12">
+                    <div className="form-group">
+                      <label htmlFor="departmentIds">Departments</label>
+                      <select
+                        name="departmentIds"
+                        id="departmentIds"
+                        className="js-example-basic-multiple w-100 form-control form-control-lg"
+                        multiple
+                        value={formData.departmentIds}
+                        onChange={handleMultiSelectChange}
+                        size={5}
+                      >
+                        {departments.map(department => (
+                          <option key={department.id} value={department.id}>
+                            {department.name}
+                          </option>
+                        ))}
+                      </select>
+                      <small className="form-text text-muted">Hold Ctrl/Cmd to select multiple departments</small>
                     </div>
                   </div>
 
                   {/* Submit Button */}
-                  <div className="col-md-4">
-                    <div className="form-group form-group mt-3">
-                      <button type="submit" className="btn btn-success btn-icon-text mt-3">
-                        Update
+                  <div className="col-md-12 text-center">
+                    <div className="form-group mt-3">
+                      <button 
+                        type="submit" 
+                        className="btn btn-success btn-icon-text"
+                        disabled={updating}
+                      >
+                        {updating ? (
+                          <>
+                            <span className="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>
+                            Updating...
+                          </>
+                        ) : (
+                          <>
+                            <i className="ti-check mr-1"></i>Update
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
@@ -258,7 +481,29 @@ export default function EditAnnouncement() {
 
               <hr />
 
-              {/* Announcement Details Table */}
+              {/* Announcement Details Section - NOT AVAILABLE VIA API */}
+              <div className="alert alert-warning" role="alert">
+                <i className="ti-alert-circle mr-2"></i>
+                <strong>⚠️ Announcement Details Functionality Not Available</strong>
+                <br />
+                <small>
+                  The API_INTEGRATION_GUIDE.md does not document endpoints for managing "Announcement Details" (sub-items).
+                  The following endpoints are missing:
+                  <ul className="mb-0 mt-2">
+                    <li>GET /api/announcements/:id/details - List announcement details</li>
+                    <li>GET /api/announcements/details/:id - Get announcement detail</li>
+                    <li>POST /api/announcements/:id/details - Create announcement detail</li>
+                    <li>PATCH /api/announcements/details/:id - Update announcement detail</li>
+                    <li>DELETE /api/announcements/details/:id - Delete announcement detail</li>
+                    <li>GET /api/announcements/details/:id/responses - List announcement detail responses</li>
+                  </ul>
+                  The API only provides: <code>POST /api/announcements/details/:id/responses</code> (create response only).
+                  <br />
+                  Please contact the backend team to add these endpoints to the API guide.
+                </small>
+              </div>
+
+              {/* Announcement Details Table - Disabled */}
               <div className="row">
                 <div className="col-12">
                   <div className="table-responsive">
@@ -274,104 +519,13 @@ export default function EditAnnouncement() {
                         </tr>
                       </thead>
                       <tbody>
-                        {announcementDetails.length > 0 ? (
-                          announcementDetails.map((detail, index) => (
-                            <tr key={detail.id} id={`detail${detail.id}`}>
-                              <td>{index + 1}</td>
-                              <td className="text-wrapped">
-                                <p dangerouslySetInnerHTML={{ __html: detail.title }}></p>
-                              </td>
-                              <td className="text-wrapped">
-                                <p dangerouslySetInnerHTML={{ __html: detail.progress }}></p>
-                              </td>
-                              <td>
-                                {/* Display departments and their statuses */}
-                                <table className="table table-bordered table-sm mb-0">
-                                  <tbody>
-                                    {detail.other_departments && detail.other_departments.length > 0 ? (
-                                      detail.other_departments.map((dept) => (
-                                        <tr key={dept.id}>
-                                          <td
-                                            style={{
-                                              width: '60%',
-                                              color: '#495057',
-                                              backgroundColor: '#e9ecef',
-                                              borderColor: '#c9ccd7'
-                                            }}
-                                          >
-                                            {dept.name}
-                                          </td>
-                                          <td style={{ width: '100px' }}>
-                                            <span className={`badge ${dept.badge_class}`}>
-                                              {dept.assigned_status}
-                                            </span>
-                                          </td>
-                                        </tr>
-                                      ))
-                                    ) : (
-                                      <tr>
-                                        <td style={{ width: '60%', color: '#495057', backgroundColor: '#e9ecef' }}>
-                                          N/A
-                                        </td>
-                                        <td style={{ width: '100px' }}>
-                                          <span className="badge badge-secondary">N/A</span>
-                                        </td>
-                                      </tr>
-                                    )}
-                                  </tbody>
-                                </table>
-                              </td>
-                              <td>{new Date(detail.timeline).toLocaleDateString('en-GB')}</td>
-                              <td style={{ width: '15px', textAlign: 'center' }}>
-                                <button
-                                  className="btn btn-sm btn-primary mb-2"
-                                  style={{ width: '43px' }}
-                                  title="Edit Announcement detail"
-                                  onClick={() => handleEditDetail(detail)}
-                                >
-                                  <i className="ti-pencil"></i>
-                                </button>
-
-                                <button
-                                  className="btn btn-sm btn-danger mb-2"
-                                  style={{ width: '43px' }}
-                                  title="Delete Announcement detail"
-                                  onClick={() => handleDeleteDetail(detail.id)}
-                                >
-                                  <i className="ti-trash"></i>
-                                </button>
-
-                                <Link
-                                  to={`/admin/replies/announcements/${detail.id}`}
-                                  className="btn btn-sm btn-info mb-2"
-                                  style={{ width: '43px' }}
-                                  role="button"
-                                  aria-pressed="true"
-                                  title="View Chat history"
-                                >
-                                  <i className="ti-comments"></i>
-                                </Link>
-
-                                {detail.other_departments && detail.other_departments.length > 0 && (
-                                  <button
-                                    className="btn btn-sm btn-success mb-2"
-                                    style={{ width: '43px' }}
-                                    role="button"
-                                    aria-pressed="true"
-                                    title="View Responsible Departments status"
-                                    onClick={() => handleViewDepartments(detail)}
-                                  >
-                                    <i className="ti-link"></i>
-                                  </button>
-                                )}
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan={10}>There is no data.</td>
-                          </tr>
-                        )}
+                        <tr>
+                          <td colSpan={6} className="text-center text-muted">
+                            Announcement Details functionality is not available via API.
+                            <br />
+                            <small>Required endpoints are not documented in API_INTEGRATION_GUIDE.md</small>
+                          </td>
+                        </tr>
                       </tbody>
                     </table>
                   </div>
@@ -382,48 +536,8 @@ export default function EditAnnouncement() {
         </div>
       </div>
 
-      {/* Modals */}
-      {showAddModal && (
-        <AddAnnouncementDetailModal
-          announcementId={Number(id)}
-          onClose={() => setShowAddModal(false)}
-          onSave={() => {
-            setShowAddModal(false);
-            alert('Add detail functionality will be implemented with backend API');
-          }}
-        />
-      )}
-
-      {showEditModal && selectedDetail && (
-        <EditAnnouncementDetailModal
-          detail={selectedDetail}
-          onClose={() => {
-            setShowEditModal(false);
-            setSelectedDetail(null);
-          }}
-          onSave={() => {
-            setShowEditModal(false);
-            setSelectedDetail(null);
-            alert('Update detail functionality will be implemented with backend API');
-          }}
-        />
-      )}
-
-      {showDepartmentsModal && selectedDetail && (
-        <ResponsibleDepartmentsModal
-          detailId={selectedDetail.id}
-          departments={selectedDetail.other_departments || []}
-          onClose={() => {
-            setShowDepartmentsModal(false);
-            setSelectedDetail(null);
-          }}
-          onSave={() => {
-            setShowDepartmentsModal(false);
-            setSelectedDetail(null);
-            alert('Update department statuses functionality will be implemented with backend API');
-          }}
-        />
-      )}
+      {/* Modals - Disabled due to missing API endpoints */}
+      {/* Note: These modals are kept in code but functionality is disabled as API endpoints are not documented */}
     </div>
   );
 }

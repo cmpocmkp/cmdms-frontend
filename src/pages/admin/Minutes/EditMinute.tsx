@@ -1,11 +1,15 @@
 /**
  * Edit/View Minute - Admin Module
  * EXACT replica of admin/recordnotes/edit.blade.php from old CMDMS
+ * Integrated with real API following API_INTEGRATION_GUIDE.md
  * Features: Meeting details display with tabs for "Update Meeting" and "All decisions"
  */
 
 import { useState, useEffect } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
+import * as meetingService from '../../../lib/services/meetingService';
+import * as minuteService from '../../../lib/services/minuteService';
+import { USE_MOCK_DATA } from '../../../lib/api';
 import { mockMinutes, mockMinuteDecisions } from '../../../lib/mocks/data/minutes';
 import { AddDecisionModal } from './components/AddDecisionModal';
 import { UpdateDecisionModal } from './components/UpdateDecisionModal';
@@ -13,12 +17,56 @@ import { ProgressHistoryModal } from './components/ProgressHistoryModal';
 import { ActivityLogModal } from './components/ActivityLogModal';
 import { UpdateDepartmentsModal } from './components/UpdateDepartmentsModal';
 
+// Status mapping: API returns numbers, UI displays labels
+const mapStatusToLabel = (status: number | undefined): string => {
+  if (!status) return 'Pending';
+  switch (status) {
+    case 1: return 'Completed';
+    case 2: return 'On Target';
+    case 3: return 'Overdue';
+    default: return 'Pending';
+  }
+};
+
+const mapStatusLabelToNumber = (label: string): number | undefined => {
+  switch (label) {
+    case 'Completed': return 1;
+    case 'On Target': return 2;
+    case 'Overdue': return 3;
+    default: return undefined;
+  }
+};
+
+// Meeting types mapping: form IDs to API type strings
+const meetingTypeMap: Record<string, string> = {
+  '1': 'normal',
+  '2': 'cabinet',
+  '3': 'board',
+  '4': 'sectorial'
+};
+
+// Reverse mapping: API type strings to form IDs
+const meetingTypeReverseMap: Record<string, string> = {
+  'normal': '1',
+  'cabinet': '2',
+  'board': '3',
+  'sectorial': '4'
+};
+
+const meetingTypes = [
+  { id: '1', name: 'Normal' },
+  { id: '2', name: 'Cabinet' },
+  { id: '3', name: 'Board' },
+  { id: '4', name: 'Sectorial' }
+];
+
 export default function EditMinute() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const [meeting, setMeeting] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [meeting, setMeeting] = useState<meetingService.Meeting | null>(null);
   const [activeTab, setActiveTab] = useState<'decisions' | 'update'>('decisions');
-  const [decisions, setDecisions] = useState<any[]>([]);
+  const [decisions, setDecisions] = useState<minuteService.Minute[]>([]);
   
   // Modal states
   const [showAddDecisionModal, setShowAddDecisionModal] = useState(false);
@@ -26,24 +74,272 @@ export default function EditMinute() {
   const [showProgressModal, setShowProgressModal] = useState(false);
   const [showActivityLogModal, setShowActivityLogModal] = useState(false);
   const [showUpdateDepartmentsModal, setShowUpdateDepartmentsModal] = useState(false);
-  const [selectedDecision, setSelectedDecision] = useState<any>(null);
+  const [selectedDecision, setSelectedDecision] = useState<minuteService.Minute | null>(null);
   const [selectedProgressHistory, setSelectedProgressHistory] = useState('');
+  const [updating, setUpdating] = useState(false);
+  
+  // Update meeting form state
+  const [updateTitle, setUpdateTitle] = useState('');
+  const [updateDate, setUpdateDate] = useState('');
+  const [updateType, setUpdateType] = useState<string>('2');
+  const [updateVenue, setUpdateVenue] = useState('');
 
+  // Fetch meeting and minutes
   useEffect(() => {
-    // Load meeting data
-    const foundMeeting = mockMinutes.find(m => m.id === parseInt(id || '0'));
-    if (foundMeeting) {
-      setMeeting(foundMeeting);
-      // Load decisions for this meeting
-      const meetingDecisions = mockMinuteDecisions.filter(d => d.minute_id === foundMeeting.id);
-      setDecisions(meetingDecisions);
-    } else {
-      alert('Meeting not found');
-      navigate('/admin/recordnotes');
+    if (id) {
+      fetchMeeting();
+      fetchMinutes();
     }
-  }, [id, navigate]);
+  }, [id]);
 
-  if (!meeting) {
+  const fetchMeeting = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (USE_MOCK_DATA) {
+        const foundMeeting = mockMinutes.find(m => m.id === parseInt(id || '0'));
+        if (foundMeeting) {
+          const meetingData = {
+            id: foundMeeting.id,
+            title: foundMeeting.subject,
+            date: foundMeeting.meeting_date,
+            type: foundMeeting.meeting_type?.toLowerCase() || 'cabinet',
+            venue: undefined,
+          };
+          setMeeting(meetingData);
+          setUpdateTitle(foundMeeting.subject);
+          setUpdateDate(foundMeeting.meeting_date);
+          setUpdateType(meetingTypeReverseMap[meetingData.type] || '2');
+          setUpdateVenue('');
+        }
+      } else {
+        if (!id) {
+          setError('Meeting ID is required');
+          setLoading(false);
+          return;
+        }
+        const response = await meetingService.getMeeting(parseInt(id));
+        if (response.success && response.data) {
+          setMeeting(response.data);
+          setUpdateTitle(response.data.title || '');
+          setUpdateDate(response.data.date || '');
+          setUpdateType(response.data.type ? (meetingTypeReverseMap[response.data.type] || '2') : '2');
+          setUpdateVenue(response.data.venue || '');
+        } else {
+          setError(response.message || 'Meeting not found');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error fetching meeting:', err);
+      setError(err.response?.data?.error?.message || 'Failed to load meeting');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchMinutes = async () => {
+    try {
+      if (!id) return;
+
+      if (USE_MOCK_DATA) {
+        const meetingDecisions = mockMinuteDecisions.filter(d => d.minute_id === parseInt(id));
+        setDecisions(meetingDecisions.map((d: any) => ({
+          id: d.id,
+          meetingId: parseInt(id),
+          heading: d.heading || d.subject,
+          issues: d.issues || d.subject,
+          decisions: d.decision_text || d.decisions,
+          responsibility: d.responsibility,
+          timeline: d.timeline,
+          status: typeof d.status === 'string' ? mapStatusLabelToNumber(d.status) : d.status,
+          progressHistory: d.progress_detail || d.comments,
+          departments: d.responsible_departments?.map((dept: any) => ({
+            id: dept.id,
+            name: dept.name,
+          })) || [],
+        })));
+      } else {
+        const response = await minuteService.listMinutesByMeeting(parseInt(id));
+        if (response.success && response.data) {
+          setDecisions(response.data);
+        }
+      }
+    } catch (err: any) {
+      console.error('Error fetching minutes:', err);
+      // Don't set error for minutes, just log it
+    }
+  };
+
+  const handleUpdateMeeting = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id || !meeting) return;
+
+    try {
+      setUpdating(true);
+      setError(null);
+
+      // Map form data to API format (only documented fields)
+      const updateData: meetingService.UpdateMeetingRequest = {
+        title: updateTitle || undefined,
+        date: updateDate || undefined,
+        type: updateType ? meetingTypeMap[updateType] : undefined,
+        venue: updateVenue || undefined,
+      };
+
+      if (USE_MOCK_DATA) {
+        // Mock update
+        await new Promise(resolve => setTimeout(resolve, 500));
+        alert('Meeting updated successfully! (Mock)');
+        await fetchMeeting();
+        setActiveTab('decisions');
+      } else {
+        // Real API call
+        const response = await meetingService.updateMeeting(parseInt(id), updateData);
+
+        if (response.success && response.data) {
+          alert('Meeting updated successfully!');
+          await fetchMeeting();
+          setActiveTab('decisions');
+        } else {
+          setError(response.message || 'Failed to update meeting');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error updating meeting:', err);
+      setError(err.response?.data?.error?.message || 'Failed to update meeting. Please try again.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleDeleteMinute = async (minuteId: number) => {
+    if (!confirm('Are you sure you want to delete this minute/decision? It will delete all related data.')) {
+      return;
+    }
+
+    try {
+      setError(null);
+
+      if (USE_MOCK_DATA) {
+        // Mock delete
+        await new Promise(resolve => setTimeout(resolve, 500));
+        alert('Minute deleted successfully! (Mock)');
+        await fetchMinutes();
+      } else {
+        // Real API call
+        const response = await minuteService.deleteMinute(minuteId);
+
+        if (response.success) {
+          alert('Minute deleted successfully!');
+          await fetchMinutes();
+        } else {
+          setError(response.message || 'Failed to delete minute');
+          alert(response.message || 'Failed to delete minute');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error deleting minute:', err);
+      const errorMsg = err.response?.data?.error?.message || 'Failed to delete minute. Please try again.';
+      setError(errorMsg);
+      alert(errorMsg);
+    }
+  };
+
+  const handleAddMinute = async (data: any) => {
+    if (!meeting) return;
+
+    try {
+      setError(null);
+
+      // Map modal form data to API format
+      const apiData: minuteService.CreateMinuteRequest = {
+        meetingId: meeting.id,
+        heading: data.issues || undefined,
+        issues: data.issues || undefined,
+        decisions: data.decisions || undefined,
+        responsibility: data.responsibility || undefined,
+        timeline: data.timeline || undefined,
+        status: data.status ? (typeof data.status === 'string' ? mapStatusLabelToNumber(data.status) : data.status) : undefined,
+        departmentIds: Array.isArray(data.departments) && data.departments.length > 0 ? data.departments : undefined,
+        progressHistory: data.comments || undefined,
+      };
+
+      if (USE_MOCK_DATA) {
+        // Mock create
+        await new Promise(resolve => setTimeout(resolve, 500));
+        alert('Minute/Decision added successfully! (Mock)');
+        setShowAddDecisionModal(false);
+        await fetchMinutes();
+      } else {
+        // Real API call
+        const response = await minuteService.createMinute(apiData);
+
+        if (response.success && response.data) {
+          alert('Minute/Decision added successfully!');
+          setShowAddDecisionModal(false);
+          await fetchMinutes();
+        } else {
+          setError(response.message || 'Failed to create minute/decision');
+          alert(response.message || 'Failed to create minute/decision');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error creating minute:', err);
+      const errorMsg = err.response?.data?.error?.message || 'Failed to create minute/decision. Please try again.';
+      setError(errorMsg);
+      alert(errorMsg);
+    }
+  };
+
+  const handleUpdateMinute = async (data: any) => {
+    if (!selectedDecision) return;
+
+    try {
+      setError(null);
+
+      // Map modal form data to API format
+      const apiData: minuteService.UpdateMinuteRequest = {
+        heading: data.issues || undefined,
+        issues: data.issues || undefined,
+        decisions: data.decisions || undefined,
+        responsibility: data.responsibility || undefined,
+        timeline: data.timeline || undefined,
+        status: data.status ? (typeof data.status === 'string' ? mapStatusLabelToNumber(data.status) : data.status) : undefined,
+        departmentIds: Array.isArray(data.departments) && data.departments.length > 0 ? data.departments : undefined,
+        progressHistory: data.comments || undefined,
+      };
+
+      if (USE_MOCK_DATA) {
+        // Mock update
+        await new Promise(resolve => setTimeout(resolve, 500));
+        alert('Minute/Decision updated successfully! (Mock)');
+        setShowUpdateDecisionModal(false);
+        setSelectedDecision(null);
+        await fetchMinutes();
+      } else {
+        // Real API call
+        const response = await minuteService.updateMinute(selectedDecision.id, apiData);
+
+        if (response.success && response.data) {
+          alert('Minute/Decision updated successfully!');
+          setShowUpdateDecisionModal(false);
+          setSelectedDecision(null);
+          await fetchMinutes();
+        } else {
+          setError(response.message || 'Failed to update minute/decision');
+          alert(response.message || 'Failed to update minute/decision');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error updating minute:', err);
+      const errorMsg = err.response?.data?.error?.message || 'Failed to update minute/decision. Please try again.';
+      setError(errorMsg);
+      alert(errorMsg);
+    }
+  };
+
+  if (loading || !meeting) {
     return (
       <div className="content-wrapper">
         <div className="card">
@@ -52,6 +348,33 @@ export default function EditMinute() {
               <span className="sr-only">Loading...</span>
             </div>
             <p className="mt-3">Loading meeting...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="content-wrapper">
+        <div className="card">
+          <div className="card-body text-center py-5">
+            <div className="alert alert-danger" role="alert">
+              <i className="ti-alert-circle mr-2"></i>
+              <strong>Error:</strong> {error}
+              <button 
+                className="btn btn-sm btn-outline-danger ml-3" 
+                onClick={() => {
+                  fetchMeeting();
+                  fetchMinutes();
+                }}
+              >
+                Retry
+              </button>
+            </div>
+            <Link to="/admin/recordnotes" className="btn btn-secondary mt-3">
+              <i className="ti-arrow-left mr-1"></i>Back to Meetings
+            </Link>
           </div>
         </div>
       </div>
@@ -79,7 +402,7 @@ export default function EditMinute() {
                       </Link>
                       <button
                         className="btn btn-outline-primary btn-fw"
-                        onClick={() => alert('Add Decision modal will be implemented')}
+                        onClick={() => setShowAddDecisionModal(true)}
                       >
                         <i className="ti-plus mr-1"></i>Add decision
                       </button>
@@ -99,38 +422,22 @@ export default function EditMinute() {
                         <tbody>
                           <tr>
                             <th className="w-25">Meeting Subject</th>
-                            <td>{meeting.subject}</td>
+                            <td>{meeting.title}</td>
                           </tr>
-                          {meeting.departments_names && meeting.departments_names.length > 0 && (
-                            <tr>
-                              <th>Department's</th>
-                              <td>
-                                <ul className="departments-inline">
-                                  {meeting.departments_names.map((deptName: string, idx: number) => (
-                                    <li key={idx}>{deptName}</li>
-                                  ))}
-                                </ul>
-                              </td>
-                            </tr>
-                          )}
                           <tr>
                             <th>Meeting Date</th>
-                            <td>{new Date(meeting.meeting_date).toLocaleDateString('en-GB')}</td>
+                            <td>{meeting.date ? new Date(meeting.date).toLocaleDateString('en-GB') : '-'}</td>
                           </tr>
-                          {meeting.attachments && meeting.attachments.length > 0 && (
+                          {meeting.type && (
                             <tr>
-                              <th>Attachment</th>
-                              <td>
-                                <a 
-                                  href="#" 
-                                  className="text-primary font-weight-bold"
-                                  title="Click to download the meeting minutes"
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  Click to Download Meeting Minutes
-                                </a>
-                              </td>
+                              <th>Meeting Type</th>
+                              <td>{meeting.type.charAt(0).toUpperCase() + meeting.type.slice(1)}</td>
+                            </tr>
+                          )}
+                          {meeting.venue && (
+                            <tr>
+                              <th>Venue</th>
+                              <td>{meeting.venue}</td>
                             </tr>
                           )}
                         </tbody>
@@ -169,23 +476,31 @@ export default function EditMinute() {
                         {activeTab === 'update' && (
                           <div className="tab-pane fade show active p-4" role="tabpanel">
                             <form 
-                              onSubmit={(e) => {
-                                e.preventDefault();
-                                alert('Update functionality will be implemented with backend API');
-                              }}
+                              onSubmit={handleUpdateMeeting}
                               className="form-sample"
                             >
+                              {/* Error Message */}
+                              {error && (
+                                <div className="alert alert-danger" role="alert">
+                                  <i className="ti-alert-circle mr-2"></i>
+                                  <strong>Error:</strong> {error}
+                                </div>
+                              )}
+
                               <div className="row">
                                 <div className="col-md-12">
                                   <div className="form-group">
-                                    <label htmlFor="record-note-subject">Subject</label>
+                                    <label htmlFor="record-note-subject">
+                                      Subject (Title) <span className="text-danger">*</span>
+                                    </label>
                                     <textarea 
                                       className="form-control" 
                                       id="meetingsubject"
-                                      name="subject"
+                                      name="title"
                                       rows={4}
                                       required
-                                      defaultValue={meeting.subject}
+                                      value={updateTitle}
+                                      onChange={(e) => setUpdateTitle(e.target.value)}
                                     />
                                   </div>
                                 </div>
@@ -194,35 +509,33 @@ export default function EditMinute() {
                               <div className="row">
                                 <div className="col-md-4">
                                   <div className="form-group">
-                                    <label>Meeting Date</label>
+                                    <label>
+                                      Meeting Date <span className="text-danger">*</span>
+                                    </label>
                                     <input 
                                       type="date"
-                                      name="meeting_date"
+                                      name="date"
                                       id="meeting_date"
                                       className="form-control"
                                       required
-                                      defaultValue={meeting.meeting_date}
+                                      value={updateDate}
+                                      onChange={(e) => setUpdateDate(e.target.value)}
                                     />
                                   </div>
                                 </div>
 
                                 <div className="col-md-4">
                                   <div className="form-group">
-                                    <label>Update Minutes</label>
-                                    <input type="file" name="attachement" className="file-upload-default" />
-                                    <div className="input-group col-xs-12">
-                                      <input 
-                                        type="text" 
-                                        className="form-control file-upload-info" 
-                                        disabled 
-                                        placeholder="Upload Image"
-                                      />
-                                      <span className="input-group-append">
-                                        <button className="file-upload-browse btn btn-success" type="button">
-                                          Upload
-                                        </button>
-                                      </span>
-                                    </div>
+                                    <label>Venue</label>
+                                    <input
+                                      type="text"
+                                      name="venue"
+                                      id="meeting_venue"
+                                      className="form-control"
+                                      value={updateVenue}
+                                      onChange={(e) => setUpdateVenue(e.target.value)}
+                                      placeholder="Enter venue"
+                                    />
                                   </div>
                                 </div>
 
@@ -231,61 +544,46 @@ export default function EditMinute() {
                                     <label>Meeting Type</label>
                                     <select 
                                       className="js-example-basic-single w-100 form-control form-control-lg" 
-                                      name="meeting_type"
-                                      defaultValue={meeting.meeting_type_id || ''}
-                                      required
+                                      name="type"
+                                      value={updateType}
+                                      onChange={(e) => setUpdateType(e.target.value)}
                                     >
-                                      <option value="1">Normal</option>
-                                      <option value="2">Cabinet</option>
-                                      <option value="3">Special</option>
-                                    </select>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="row">
-                                <div className="col-md-6">
-                                  <div className="form-group">
-                                    <label>Departments</label>
-                                    <select 
-                                      name="departments[]" 
-                                      id="departments"
-                                      className="js-example-basic-multiple w-100 form-control form-control-lg"
-                                      multiple
-                                      required
-                                      style={{ minHeight: '150px' }}
-                                      defaultValue={meeting.department_ids || []}
-                                    >
-                                      {meeting.departments_names && meeting.departments_names.map((name: string, idx: number) => (
-                                        <option key={idx} value={idx} selected>
-                                          {name}
-                                        </option>
+                                      {meetingTypes.map(typeOption => (
+                                        <option key={typeOption.id} value={typeOption.id}>{typeOption.name}</option>
                                       ))}
                                     </select>
                                   </div>
                                 </div>
+                              </div>
 
-                                <div className="col-md-6">
-                                  <div className="form-group">
-                                    <label htmlFor="record-note-participants">Participants</label>
-                                    <textarea 
-                                      className="form-control"
-                                      id="minutes_meetings_participants"
-                                      name="participants"
-                                      rows={4}
-                                      defaultValue={meeting.participants || ''}
-                                    />
-                                  </div>
+                              {/* UI-Only Fields Note */}
+                              <div className="row">
+                                <div className="col-md-12">
+                                  <hr />
+                                  <small className="text-muted">
+                                    <strong>Note:</strong> The following fields are UI-only and not sent to the API (not documented in API_INTEGRATION_GUIDE.md): departments, participants, attachments
+                                  </small>
                                 </div>
                               </div>
 
-                              <button type="submit" className="btn btn-success btn-icon-text mr-2">
-                                Update
+                              <button 
+                                type="submit" 
+                                className="btn btn-success btn-icon-text mr-2"
+                                disabled={updating}
+                              >
+                                {updating ? (
+                                  <>
+                                    <span className="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>
+                                    Updating...
+                                  </>
+                                ) : (
+                                  'Update'
+                                )}
                               </button>
                               <button 
                                 type="button" 
                                 className="btn btn-light"
-                                onClick={() => window.history.back()}
+                                onClick={() => setActiveTab('decisions')}
                               >
                                 Cancel
                               </button>
@@ -327,88 +625,84 @@ export default function EditMinute() {
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {decisions.map((decision, index) => (
-                                      <tr key={decision.id} id={`decision${decision.id}`}>
-                                        <td style={{ width: '5px', verticalAlign: 'top' }}>{index + 1}</td>
-                                        <td style={{ width: '5px', verticalAlign: 'top' }}>
-                                          Created at: <span className="text-muted">{new Date(decision.created_at).toLocaleDateString('en-GB')}</span><br/><br/>
-                                          Created by: <span className="text-muted">{decision.creator_name || 'System'}</span><br/><br/>
-                                          Updated at: <span className="text-muted">{new Date(decision.updated_at).toLocaleDateString('en-GB')}</span><br/><br/>
-                                          Last Updated by: <span className="text-muted">{decision.editor_name || 'System'}</span>
-                                        </td>
-                                        <td style={{ width: '180px', verticalAlign: 'top' }}>
-                                          <div style={{ width: '200px' }}>{decision.subject || '-'}</div>
-                                        </td>
-                                        <td style={{ width: '180px', verticalAlign: 'top' }}>
-                                          <div style={{ width: '200px' }}>{decision.decision_text}</div>
-                                        </td>
-                                        <td style={{ width: '15px', verticalAlign: 'top' }}>
-                                          <div className="text-primary">{meeting.department_name || ''}</div>
-                                          <div style={{ width: '100%' }}>{decision.responsibility || '-'}</div>
-                                        </td>
-                                        <td style={{ width: '100px', verticalAlign: 'top' }}>
-                                          <div style={{ width: '200px' }}>{decision.progress || decision.comments || '-'}</div>
-                                          {decision.progress_detail && (
-                                            <button 
-                                              style={{ margin: 'unset', padding: 'unset' }}
-                                              title="click to view progress so far details"
-                                              className="btn btn-link btn-sm"
-                                              onClick={() => {
-                                                setSelectedProgressHistory(decision.progress_detail);
-                                                setShowProgressModal(true);
-                                              }}
-                                            >
-                                              more details
-                                            </button>
-                                          )}
-                                        </td>
-                                        <td style={{ width: '30px', verticalAlign: 'top' }}>
-                                          {decision.responsible_departments && decision.responsible_departments.length > 0 ? (
-                                            <table className="table table-bordered table-sm mb-0">
-                                              <tbody>
-                                                {decision.responsible_departments.map((dept: any, dIdx: number) => (
-                                                  <tr key={dIdx}>
-                                                    <td style={{ 
-                                                      width: '60%', 
-                                                      color: '#495057', 
-                                                      backgroundColor: '#e9ecef',
-                                                      borderColor: '#c9ccd7'
-                                                    }}>
-                                                      {dept.name}
-                                                    </td>
-                                                    <td style={{ width: '100px' }}>
-                                                      <span className={`badge ${
-                                                        dept.status === 'Completed' ? 'badge-success' :
-                                                        dept.status === 'On Target' ? 'badge-warning' :
-                                                        dept.status === 'Overdue' ? 'badge-danger' :
-                                                        dept.status === 'Off Target' ? 'badge-info' :
-                                                        'badge-secondary'
-                                                      }`}>
-                                                        {dept.status}
-                                                      </span>
-                                                    </td>
-                                                  </tr>
-                                                ))}
-                                              </tbody>
-                                            </table>
-                                          ) : (
-                                            <span className={`badge ${
-                                              decision.status === 'Completed' ? 'badge-success' :
-                                              decision.status === 'On Target' ? 'badge-warning' :
-                                              decision.status === 'Overdue' ? 'badge-danger' :
-                                              'badge-secondary'
-                                            }`}>
-                                              {decision.status}
-                                            </span>
-                                          )}
-                                        </td>
-                                        <td style={{ width: '200px', verticalAlign: 'top' }}>
-                                          {decision.timeline ? new Date(decision.timeline).toLocaleDateString('en-GB') : '-'}
-                                          <br/>
-                                          {decision.delay_remaining && (
-                                            <span className="text-muted small">{decision.delay_remaining}</span>
-                                          )}
-                                        </td>
+                                    {decisions.map((decision, index) => {
+                                      const statusLabel = mapStatusToLabel(decision.status);
+                                      const statusClass = decision.status === 1 ? 'badge-success' :
+                                                         decision.status === 2 ? 'badge-warning' :
+                                                         decision.status === 3 ? 'badge-danger' :
+                                                         'badge-secondary';
+                                      return (
+                                        <tr key={decision.id} id={`decision${decision.id}`}>
+                                          <td style={{ width: '5px', verticalAlign: 'top' }}>{index + 1}</td>
+                                          <td style={{ width: '5px', verticalAlign: 'top' }}>
+                                            {decision.createdAt && (
+                                              <>
+                                                Created at: <span className="text-muted">{new Date(decision.createdAt).toLocaleDateString('en-GB')}</span><br/><br/>
+                                              </>
+                                            )}
+                                            {decision.updatedAt && (
+                                              <>
+                                                Updated at: <span className="text-muted">{new Date(decision.updatedAt).toLocaleDateString('en-GB')}</span>
+                                              </>
+                                            )}
+                                          </td>
+                                          <td style={{ width: '180px', verticalAlign: 'top' }}>
+                                            <div style={{ width: '200px' }}>{decision.heading || decision.issues || '-'}</div>
+                                          </td>
+                                          <td style={{ width: '180px', verticalAlign: 'top' }}>
+                                            <div style={{ width: '200px' }}>{decision.decisions || '-'}</div>
+                                          </td>
+                                          <td style={{ width: '15px', verticalAlign: 'top' }}>
+                                            <div style={{ width: '100%' }}>{decision.responsibility || '-'}</div>
+                                          </td>
+                                          <td style={{ width: '100px', verticalAlign: 'top' }}>
+                                            <div style={{ width: '200px' }}>{decision.progressHistory || '-'}</div>
+                                            {decision.progressHistory && (
+                                              <button 
+                                                style={{ margin: 'unset', padding: 'unset' }}
+                                                title="click to view progress so far details"
+                                                className="btn btn-link btn-sm"
+                                                onClick={() => {
+                                                  setSelectedProgressHistory(decision.progressHistory || '');
+                                                  setShowProgressModal(true);
+                                                }}
+                                              >
+                                                more details
+                                              </button>
+                                            )}
+                                          </td>
+                                          <td style={{ width: '30px', verticalAlign: 'top' }}>
+                                            {decision.departments && decision.departments.length > 0 ? (
+                                              <table className="table table-bordered table-sm mb-0">
+                                                <tbody>
+                                                  {decision.departments.map((dept, dIdx: number) => (
+                                                    <tr key={dIdx}>
+                                                      <td style={{ 
+                                                        width: '60%', 
+                                                        color: '#495057', 
+                                                        backgroundColor: '#e9ecef',
+                                                        borderColor: '#c9ccd7'
+                                                      }}>
+                                                        {dept.name}
+                                                      </td>
+                                                      <td style={{ width: '100px' }}>
+                                                        <span className={statusClass}>
+                                                          {statusLabel}
+                                                        </span>
+                                                      </td>
+                                                    </tr>
+                                                  ))}
+                                                </tbody>
+                                              </table>
+                                            ) : (
+                                              <span className={statusClass}>
+                                                {statusLabel}
+                                              </span>
+                                            )}
+                                          </td>
+                                          <td style={{ width: '200px', verticalAlign: 'top' }}>
+                                            {decision.timeline ? new Date(decision.timeline).toLocaleDateString('en-GB') : '-'}
+                                          </td>
                                         <td style={{ width: '200px', verticalAlign: 'top' }}>
                                           {/* Update Decision Button */}
                                           <button 
@@ -423,7 +717,7 @@ export default function EditMinute() {
                                           </button>
 
                                           {/* Responsible Department Button */}
-                                          {decision.responsible_departments && decision.responsible_departments.length > 0 && (
+                                          {decision.departments && decision.departments.length > 0 && (
                                             <>
                                               <br/><br/>
                                               <button 
@@ -443,25 +737,20 @@ export default function EditMinute() {
                                           <br/><br/>
                                           <button 
                                             className="btn btn-danger btn-fw btn-sm"
-                                            onClick={() => {
-                                              if (confirm('Are you sure you want to delete? It will delete all related data to this decision e.g. responsible departments, replies and letters.')) {
-                                                console.log('Delete decision:', decision.id);
-                                                alert('Delete functionality will be implemented with backend API');
-                                              }
-                                            }}
+                                            onClick={() => handleDeleteMinute(decision.id)}
                                           >
                                             <i className="ti-trash icon-sm"></i>
                                           </button>
 
                                           {/* Progress So Far (Replies) Button */}
                                           <br/><br/>
-                                          <button 
+                                          <Link
+                                            to={`/admin/replies/minutes/${decision.id}`}
                                             className="btn btn-primary btn-sm mb-2"
                                             title="Progress so far"
-                                            onClick={() => alert('Navigate to replies page (will be implemented)')}
                                           >
                                             <i className="ti-comments"></i>
-                                          </button>
+                                          </Link>
 
                                           {/* Activity Logs Button */}
                                           <br/>
@@ -477,7 +766,8 @@ export default function EditMinute() {
                                           </button>
                                         </td>
                                       </tr>
-                                    ))}
+                                      );
+                                    })}
                                   </tbody>
                                 </table>
                               </div>
@@ -502,10 +792,7 @@ export default function EditMinute() {
         isOpen={showAddDecisionModal}
         onClose={() => setShowAddDecisionModal(false)}
         meetingId={meeting.id}
-        onSubmit={(data) => {
-          console.log('Add Decision:', data);
-          alert('Decision added successfully! (Backend integration pending)');
-        }}
+        onSubmit={handleAddMinute}
       />
 
       <UpdateDecisionModal
@@ -515,10 +802,7 @@ export default function EditMinute() {
           setSelectedDecision(null);
         }}
         decision={selectedDecision}
-        onSubmit={(data) => {
-          console.log('Update Decision:', data);
-          alert('Decision updated successfully! (Backend integration pending)');
-        }}
+        onSubmit={handleUpdateMinute}
       />
 
       <ProgressHistoryModal

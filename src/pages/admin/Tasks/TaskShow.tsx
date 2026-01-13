@@ -4,7 +4,9 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
+import { getTask } from '../../../lib/services/taskService';
+import { USE_MOCK_DATA } from '../../../lib/api';
 
 interface Task {
   id: number;
@@ -49,63 +51,115 @@ interface Task {
   };
 }
 
+// Map API status to frontend status object
+const mapStatus = (status?: string): { value: number; label: string; badgeClass: string } => {
+  const statusMap: Record<string, { value: number; label: string; badgeClass: string }> = {
+    'pending': { value: 0, label: 'Pending', badgeClass: 'badge-secondary' },
+    'in-progress': { value: 1, label: 'In Progress', badgeClass: 'badge-warning' },
+    'completed': { value: 2, label: 'Completed', badgeClass: 'badge-success' },
+    'cancelled': { value: 3, label: 'Cancelled', badgeClass: 'badge-danger' },
+  };
+  return statusMap[status || 'pending'] || statusMap['pending'];
+};
+
 export default function TaskShow() {
   const { taskId } = useParams<{ taskId: string }>();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [task, setTask] = useState<Task | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // TODO: Replace with actual API call
-    // const fetchData = async () => {
-    //   try {
-    //     const response = await api.get(`/admin/tasks/${taskId}`);
-    //     setTask(response.data.task);
-    //   } catch (error) {
-    //     console.error('Error fetching task:', error);
-    //   } finally {
-    //     setLoading(false);
-    //   }
-    // };
-    // fetchData();
+    const fetchTaskData = async () => {
+      if (!taskId) {
+        setError('Task ID is required');
+        setLoading(false);
+        return;
+      }
 
-    // Dummy data for now
-    const dummyTask: Task = {
-      id: Number(taskId) || 1,
-      title: 'Sample Task',
-      description: '<p>This is a sample task description.</p>',
-      progress: '<p>Task is in progress.</p>',
-      status: {
-        value: 2,
-        label: 'On Target',
-        badgeClass: 'badge-warning',
-      },
-      timeline: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-      attachments: [],
-      departments: [
-        {
-          id: 1,
-          name: 'Health Department',
-          pivot: {
-            status: {
-              value: 2,
-              label: 'On Target',
-              badgeClass: 'badge-warning',
-            },
+      if (USE_MOCK_DATA) {
+        // Mock data for development
+        const dummyTask: Task = {
+          id: Number(taskId) || 1,
+          title: 'Sample Task',
+          description: '<p>This is a sample task description.</p>',
+          progress: '<p>Task is in progress.</p>',
+          status: {
+            value: 2,
+            label: 'On Target',
+            badgeClass: 'badge-warning',
           },
-        },
-      ],
-      taskable: {
-        id: 1,
-        getTaskableTitle: () => 'Sample Summary Title',
-        getTaskableLabel: () => 'Summary',
-        getTaskReturnUrl: () => '/admin/summaries/show/1',
-      },
+          timeline: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          attachments: [],
+          departments: [
+            {
+              id: 1,
+              name: 'Health Department',
+              pivot: {
+                status: {
+                  value: 2,
+                  label: 'On Target',
+                  badgeClass: 'badge-warning',
+                },
+              },
+            },
+          ],
+          taskable: {
+            id: 1,
+            getTaskableTitle: () => 'Sample Summary Title',
+            getTaskableLabel: () => 'Summary',
+            getTaskReturnUrl: () => '/admin/summaries/show/1',
+          },
+        };
+        setTask(dummyTask);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const taskData = await getTask(Number(taskId));
+        
+        // Map API response to frontend structure
+        // Note: API only provides basic fields, UI-only fields are set to defaults
+        const mappedTask: Task = {
+          id: taskData.id,
+          title: taskData.title || '',
+          description: taskData.description || '<p>No description provided.</p>',
+          progress: '<p>No progress information available.</p>', // UI-only field
+          status: mapStatus(taskData.status),
+          timeline: taskData.deadline || taskData.createdAt || new Date().toISOString(),
+          created_at: taskData.createdAt || new Date().toISOString(),
+          attachments: [], // UI-only field (not in API)
+          departments: taskData.department ? [
+            {
+              id: taskData.department.id,
+              name: taskData.department.name,
+              pivot: {
+                status: mapStatus(taskData.status),
+              },
+            },
+          ] : [],
+          taskable: {
+            // Get taskable info from location state or default
+            id: (location.state as any)?.taskableId || 1,
+            getTaskableTitle: () => (location.state as any)?.taskableTitle || 'Task',
+            getTaskableLabel: () => (location.state as any)?.taskableLabel || 'Parent',
+            getTaskReturnUrl: () => (location.state as any)?.returnUrl || '/admin/tasks',
+          },
+        };
+
+        setTask(mappedTask);
+      } catch (err: any) {
+        console.error('Error fetching task:', err);
+        setError(err.response?.data?.message || 'Failed to load task');
+      } finally {
+        setLoading(false);
+      }
     };
 
-    setTask(dummyTask);
-    setLoading(false);
-  }, [taskId]);
+    fetchTaskData();
+  }, [taskId, location]);
 
   const handlePrint = () => {
     window.print();
@@ -113,6 +167,10 @@ export default function TaskShow() {
 
   if (loading) {
     return <div className="text-center p-5">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center p-5 text-danger">Error: {error}</div>;
   }
 
   if (!task) {

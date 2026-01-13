@@ -31,6 +31,12 @@ const EditTag = lazy(() => import('../pages/admin/Tags/EditTag'));
 const DepartmentsList = lazy(() => import('../pages/admin/Departments/DepartmentsList'));
 const AddDepartment = lazy(() => import('../pages/admin/Departments/AddDepartment'));
 const EditDepartment = lazy(() => import('../pages/admin/Departments/EditDepartment'));
+const RolesList = lazy(() => import('../pages/admin/Roles/RolesList'));
+const AddRole = lazy(() => import('../pages/admin/Roles/AddRole'));
+const EditRole = lazy(() => import('../pages/admin/Roles/EditRole'));
+const PermissionsList = lazy(() => import('../pages/admin/Permissions/PermissionsList'));
+const AddPermission = lazy(() => import('../pages/admin/Permissions/AddPermission'));
+const EditPermission = lazy(() => import('../pages/admin/Permissions/EditPermission'));
 const LogViewerPage = lazy(() => import('../pages/admin/LogViewer/LogViewerPage'));
 
 // New modules - Minutes
@@ -359,6 +365,30 @@ export const router = createBrowserRouter([
       {
         path: 'departments/edit/:id',
         element: withSuspense(EditDepartment),
+      },
+      {
+        path: 'roles',
+        element: withSuspense(RolesList),
+      },
+      {
+        path: 'roles/create',
+        element: withSuspense(AddRole),
+      },
+      {
+        path: 'roles/edit/:id',
+        element: withSuspense(EditRole),
+      },
+      {
+        path: 'permissions',
+        element: withSuspense(PermissionsList),
+      },
+      {
+        path: 'permissions/create',
+        element: withSuspense(AddPermission),
+      },
+      {
+        path: 'permissions/edit/:id',
+        element: withSuspense(EditPermission),
       },
       
       // Log Viewer (Laravel package)

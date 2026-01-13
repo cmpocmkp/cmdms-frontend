@@ -1,10 +1,13 @@
 /**
  * Minute Replies/Chat - Admin Module
  * EXACT replica of admin/recordnotes/reply.blade.php
+ * Integrated with real API following API_INTEGRATION_GUIDE.md
  */
 
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import * as minuteService from '../../../lib/services/minuteService';
+import { USE_MOCK_DATA } from '../../../lib/api';
 
 interface TaggedDepartment {
   id: number;
@@ -62,127 +65,108 @@ interface Minute {
 export default function MinuteReplies() {
   const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [minute, setMinute] = useState<Minute | null>(null);
+  const [replies, setReplies] = useState<Reply[]>([]);
   const [relatedDepartments, setRelatedDepartments] = useState<Department[]>([]);
-  const [_allDepartments, setAllDepartments] = useState<Department[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  
+  // Reply form state
+  const [replyContent, setReplyContent] = useState('');
+  const [taggedDepartmentIds, setTaggedDepartmentIds] = useState<number[]>([]);
 
   useEffect(() => {
-    // TODO: Replace with actual API call
-    // const fetchData = async () => {
-    //   try {
-    //     const response = await api.get(`/admin/replies/minutes/${id}`);
-    //     setMinute(response.data.minutes);
-    //     setRelatedDepartments(response.data.relatedDepartments);
-    //     setAllDepartments(response.data.allDepartments);
-    //   } catch (error) {
-    //     console.error('Error fetching minute replies:', error);
-    //   } finally {
-    //     setLoading(false);
-    //   }
-    // };
-    // fetchData();
+    if (id) {
+      fetchMinuteAndReplies();
+    }
+  }, [id]);
 
-    // Mock data for testing
-    setMinute({
-      id: parseInt(id || '1'),
-      issues: '<p>Implementation of Health Insurance Scheme for all citizens</p>',
-      heading: 'Health Insurance Scheme',
-      decisions: '<p>Approved the health insurance scheme with comprehensive coverage including primary healthcare, emergency services, and specialized treatments.</p>',
-      comments: '<p>CM Office Response: The implementation is progressing well.</p>',
-      timeline: '2024-03-15',
-      status: 2,
-      status_label: 'On Target',
-      status_class: 'badge-warning',
-      meeting_id: 1,
-      creator: {
-        name: 'Admin User',
-        phone: '+92-300-1234567',
-      },
-      departments: [
-        { id: 1, name: 'Health Department' },
-        { id: 2, name: 'Finance Department' },
-        { id: 3, name: 'Public Works Department' },
-      ],
-      replies: [
-        {
-          id: 1,
-          reply_detail: '<p>Health Department Response: We have completed the initial assessment and identified key implementation areas. The scheme will cover all districts.</p>',
-          attachments: ['assessment_report.pdf'],
+  const fetchMinuteAndReplies = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!id) return;
+
+      if (USE_MOCK_DATA) {
+        // Mock data - keeping existing structure for now
+        setMinute({
+          id: parseInt(id),
+          issues: '<p>Implementation of Health Insurance Scheme for all citizens</p>',
+          heading: 'Health Insurance Scheme',
+          decisions: '<p>Approved the health insurance scheme with comprehensive coverage.</p>',
+          timeline: '2024-03-15',
           status: 2,
           status_label: 'On Target',
           status_class: 'badge-warning',
-          created_at: '2024-01-20T10:30:00',
-          user: {
-            id: 2,
-            name: 'Department User',
-            phone: '+92-300-7654321',
-            role_id: 2,
-            department: {
-              id: 1,
-              name: 'Health Department',
-            },
-          },
-          taggedDepartments: [
+          meeting_id: 1,
+          departments: [
             { id: 1, name: 'Health Department' },
-          ],
-        },
-        {
-          id: 2,
-          reply_detail: '<p>Admin Response: Thank you for the update. Please ensure all districts are covered and provide a detailed implementation timeline.</p>',
-          status: 2,
-          status_label: 'On Target',
-          status_class: 'badge-warning',
-          created_at: '2024-01-21T14:20:00',
-          user: {
-            id: 1,
-            name: 'Admin User',
-            phone: '+92-300-1234567',
-            role_id: 1,
-            department: {
-              id: 1,
-              name: 'CM Office',
-            },
-          },
-        },
-        {
-          id: 3,
-          reply_detail: '<p>Finance Department Response: Budget has been allocated. We are coordinating with Health Department for fund disbursement schedule.</p>',
-          status: 2,
-          status_label: 'On Target',
-          status_class: 'badge-warning',
-          created_at: '2024-01-22T09:15:00',
-          user: {
-            id: 3,
-            name: 'Finance User',
-            phone: '+92-300-9876543',
-            role_id: 2,
-            department: {
-              id: 2,
-              name: 'Finance Department',
-            },
-          },
-          taggedDepartments: [
             { id: 2, name: 'Finance Department' },
           ],
-        },
-      ],
-    });
+          replies: [],
+        });
+        setRelatedDepartments([
+          { id: 1, name: 'Health Department' },
+          { id: 2, name: 'Finance Department' },
+        ]);
+        setReplies([]);
+      } else {
+        // Fetch minute
+        const minuteResponse = await minuteService.getMinute(parseInt(id));
+        if (minuteResponse.success && minuteResponse.data) {
+          const minuteData = minuteResponse.data;
+          setMinute({
+            id: minuteData.id,
+            issues: minuteData.issues || minuteData.heading || '',
+            heading: minuteData.heading,
+            decisions: minuteData.decisions || '',
+            timeline: minuteData.timeline || '',
+            status: minuteData.status || 0,
+            status_label: getStatusLabel(minuteData.status),
+            status_class: getBadgeClass(minuteData.status),
+            meeting_id: minuteData.meetingId,
+            departments: minuteData.departments || [],
+            replies: [],
+          });
+          setRelatedDepartments(minuteData.departments || []);
+        } else {
+          setError(minuteResponse.message || 'Failed to load minute');
+        }
 
-    setRelatedDepartments([
-      { id: 1, name: 'Health Department' },
-      { id: 2, name: 'Finance Department' },
-      { id: 3, name: 'Public Works Department' },
-    ]);
-
-    setAllDepartments([
-      { id: 1, name: 'Health Department' },
-      { id: 2, name: 'Finance Department' },
-      { id: 3, name: 'Public Works Department' },
-      { id: 4, name: 'Education Department' },
-    ]);
-
-    setLoading(false);
-  }, [id]);
+        // Fetch replies
+        const repliesResponse = await minuteService.getMinuteReplies(parseInt(id));
+        if (repliesResponse.success && repliesResponse.data) {
+          const mappedReplies: Reply[] = repliesResponse.data.map((reply) => ({
+            id: reply.id,
+            reply_detail: reply.content || '',
+            attachments: reply.attachments || [],
+            status: reply.status,
+            status_label: getStatusLabel(reply.status),
+            status_class: getBadgeClass(reply.status),
+            created_at: reply.createdAt || new Date().toISOString(),
+            user: reply.user ? {
+              id: reply.user.id,
+              name: reply.user.name || '',
+              role_id: 2, // Default role, API doesn't provide this
+              department: undefined, // API doesn't provide department in user object
+            } : {
+              id: 0,
+              name: 'Unknown User',
+              role_id: 2,
+            },
+            taggedDepartments: [], // API doesn't provide tagged departments
+          }));
+          setReplies(mappedReplies);
+        }
+      }
+    } catch (err: any) {
+      console.error('Error fetching minute and replies:', err);
+      setError(err.response?.data?.error?.message || 'Failed to load minute and replies');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getBadgeClass = (status?: number): string => {
     if (!status) return '';
@@ -216,6 +200,49 @@ export default function MinuteReplies() {
     return reply.user.role_id === 1 || reply.user.role_id === 3; // ADMIN or DATAENTRY
   };
 
+  const handleSubmitReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id || !replyContent.trim()) return;
+
+    try {
+      setSubmitting(true);
+      setError(null);
+
+      // Map form data to API format (only documented fields)
+      const apiData: minuteService.CreateMinuteReplyRequest = {
+        content: replyContent.trim(),
+        // Note: status and progress are optional, not included in form
+        // attachments[] is documented but file upload not implemented yet
+      };
+
+      if (USE_MOCK_DATA) {
+        // Mock create
+        await new Promise(resolve => setTimeout(resolve, 500));
+        alert('Reply added successfully! (Mock)');
+        setReplyContent('');
+        setTaggedDepartmentIds([]);
+        await fetchMinuteAndReplies();
+      } else {
+        // Real API call
+        const response = await minuteService.createMinuteReply(parseInt(id), apiData);
+
+        if (response.success && response.data) {
+          alert('Reply added successfully!');
+          setReplyContent('');
+          setTaggedDepartmentIds([]);
+          await fetchMinuteAndReplies();
+        } else {
+          setError(response.message || 'Failed to create reply');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error creating reply:', err);
+      setError(err.response?.data?.error?.message || 'Failed to create reply. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="content-wrapper">
@@ -231,13 +258,31 @@ export default function MinuteReplies() {
     );
   }
 
+  if (error && !minute) {
+    return (
+      <div className="content-wrapper">
+        <div className="card">
+          <div className="card-body text-center py-5">
+            <div className="alert alert-danger" role="alert">
+              <i className="ti-alert-circle mr-2"></i>
+              <strong>Error:</strong> {error}
+            </div>
+            <Link to="/admin/recordnotes" className="btn btn-secondary mt-3">
+              <i className="ti-arrow-left mr-1"></i> Back to Meetings
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!minute) {
     return (
       <div className="content-wrapper">
         <div className="card">
           <div className="card-body text-center py-5">
             <p>Minute not found</p>
-            <Link to="/admin/report/cabinet-meetings" className="btn btn-secondary">
+            <Link to="/admin/recordnotes" className="btn btn-secondary">
               <i className="ti-arrow-left mr-1"></i> Back
             </Link>
           </div>
@@ -246,7 +291,7 @@ export default function MinuteReplies() {
     );
   }
 
-  const sortedReplies = [...minute.replies].sort((a, b) => 
+  const sortedReplies = [...replies].sort((a, b) => 
     new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
 
@@ -341,7 +386,7 @@ export default function MinuteReplies() {
                   <div className="btn-toolbar pull-right">
                     <div className="btn-group">
                       <Link
-                        to="/admin/report/cabinet-meetings"
+                        to="/admin/recordnotes"
                         className="btn btn-outline-primary btn-fw"
                         role="button"
                       >
@@ -507,16 +552,23 @@ export default function MinuteReplies() {
         <div className="col-lg-12">
           <div className="card">
             <div className="card-body">
-              <form className="form-sample" id="admin_reply_form" method="post" encType="multipart/form-data">
-                <p className="description">
-                  <input type="hidden" name="minute_id" value={minute.id} />
-                </p>
+              <form 
+                className="form-sample" 
+                id="admin_reply_form" 
+                onSubmit={handleSubmitReply}
+              >
+                {error && (
+                  <div className="alert alert-danger" role="alert">
+                    <i className="ti-alert-circle mr-2"></i>
+                    <strong>Error:</strong> {error}
+                  </div>
+                )}
                 <fieldset>
                   <div className="row">
                     <div className="col-md-12">
                       <div className="form-group">
                         <label htmlFor="reply_detail" className="text-dark">
-                          <b>Progress Reply</b>
+                          <b>Progress Reply</b> <span className="text-danger">*</span>
                         </label>
                         <textarea
                           className="form-control mt-3"
@@ -524,11 +576,15 @@ export default function MinuteReplies() {
                           placeholder="type reply here..."
                           name="reply_detail"
                           rows={6}
+                          value={replyContent}
+                          onChange={(e) => setReplyContent(e.target.value)}
+                          required
                         ></textarea>
                       </div>
+                      {/* Note: Tag departments is UI-only, not supported by API */}
                       <div className="form-group">
                         <label htmlFor="tag_departments_dropdown" className="text-dark">
-                          <b>Tag departments</b>
+                          <b>Tag departments</b> <small className="text-muted">(UI-only, not sent to API)</small>
                         </label>
                         <select
                           id="tag_departments_dropdown"
@@ -536,6 +592,11 @@ export default function MinuteReplies() {
                           style={{ width: '300px' }}
                           className="w-100 form-control form-control-lg mb-3"
                           multiple
+                          value={taggedDepartmentIds.map(String)}
+                          onChange={(e) => {
+                            const selected = Array.from(e.target.selectedOptions, option => parseInt(option.value));
+                            setTaggedDepartmentIds(selected);
+                          }}
                         >
                           {relatedDepartments.map((dept) => (
                             <option key={dept.id} value={dept.id}>
@@ -545,21 +606,22 @@ export default function MinuteReplies() {
                         </select>
                       </div>
                     </div>
+                    {/* Note: Attachments is UI-only, API supports attachments[] but implementation pending */}
                     <div className="col-md-4">
                       <div className="form-group">
                         <label>
-                          Attach Documents<small> (if any)</small>
+                          Attach Documents<small> (if any)</small> <small className="text-muted">(UI-only)</small>
                         </label>
-                        <input type="file" name="attachments[]" className="file-upload-default" multiple />
+                        <input type="file" name="attachments[]" className="file-upload-default" multiple disabled />
                         <div className="input-group col-xs-12">
                           <input
                             type="text"
                             className="form-control file-upload-info"
                             disabled
-                            placeholder="Upload files"
+                            placeholder="Upload files (not implemented)"
                           />
                           <span className="input-group-append">
-                            <button className="file-upload-browse btn btn-success" type="button">
+                            <button className="file-upload-browse btn btn-success" type="button" disabled>
                               Select Files
                             </button>
                           </span>
@@ -567,7 +629,20 @@ export default function MinuteReplies() {
                       </div>
                     </div>
                   </div>
-                  <input className="btn btn-primary pull-right" type="submit" value="Submit" />
+                  <button 
+                    className="btn btn-primary pull-right" 
+                    type="submit"
+                    disabled={submitting || !replyContent.trim()}
+                  >
+                    {submitting ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>
+                        Submitting...
+                      </>
+                    ) : (
+                      'Submit'
+                    )}
+                  </button>
                 </fieldset>
               </form>
             </div>

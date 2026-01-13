@@ -3,9 +3,11 @@
  * EXACT replica of admin/tasks/comments.blade.php from old CMDMS
  */
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useParams, useLocation } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
+import { getTask, addTaskComment } from '../../../lib/services/taskService';
+import { USE_MOCK_DATA } from '../../../lib/api';
 
 // Mock comment data structure
 interface CommentAttachment {
@@ -115,13 +117,16 @@ const mockTask: Task = {
 };
 
 export default function TaskComments() {
-  // const { taskId } = useParams<{ taskId: string }>(); // Will be used when API is integrated
-  // In real app: const task = await fetchTask(taskId);
-  const task = mockTask;
-  
+  const { taskId } = useParams<{ taskId: string }>();
+  const location = useLocation();
+  const [loading, setLoading] = useState(true);
+  const [task, setTask] = useState<Task>(mockTask);
+  const [error, setError] = useState<string | null>(null);
   const [isChatExpanded, setIsChatExpanded] = useState(true);
   const [isReplyExpanded, setIsReplyExpanded] = useState(true);
   const [attachmentFields, setAttachmentFields] = useState([{ id: 1 }]);
+  const [submitting, setSubmitting] = useState(false);
+  const [commentContent, setCommentContent] = useState('');
 
   const getStatusBadgeClass = (status: string | null) => {
     if (!status) return 'badge-secondary';
@@ -145,14 +150,127 @@ export default function TaskComments() {
     setAttachmentFields([...attachmentFields, { id: attachmentFields.length + 1 }]);
   };
 
-  const handleSubmitReply = (e: React.FormEvent) => {
+  useEffect(() => {
+    const fetchTaskData = async () => {
+      if (!taskId) {
+        setError('Task ID is required');
+        setLoading(false);
+        return;
+      }
+
+      if (USE_MOCK_DATA) {
+        setTask(mockTask);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const taskData = await getTask(Number(taskId));
+        
+        // Map API response to frontend structure
+        // Note: API only provides basic fields, UI-only fields are set to defaults
+        const mappedTask: Task = {
+          id: taskData.id,
+          title: taskData.title || '',
+          description: taskData.description || '<p>No description provided.</p>',
+          progress: '<p>No progress information available.</p>', // UI-only field
+          timeline: taskData.deadline || taskData.createdAt || new Date().toISOString(),
+          status: taskData.status || 'pending',
+          updated_at: taskData.updatedAt || taskData.createdAt || new Date().toISOString(),
+          creator: undefined, // UI-only field (not in API)
+          attachments: [], // UI-only field (not in API)
+          departments: taskData.department ? [
+            {
+              id: taskData.department.id,
+              name: taskData.department.name,
+            },
+          ] : [],
+          comments: taskData.comments?.map((comment) => ({
+            id: comment.id,
+            content: comment.content || '',
+            status: null, // UI-only field
+            created_at: comment.createdAt || new Date().toISOString(),
+            user: {
+              id: comment.user?.id || 0,
+              name: comment.user?.name || 'Unknown',
+              role_id: 2, // Default to department user
+              department: {
+                name: comment.user?.department?.name || 'Unknown Department',
+              },
+            },
+            attachments: [], // UI-only field
+          })) || [],
+        };
+
+        setTask(mappedTask);
+      } catch (err: any) {
+        console.error('Error fetching task:', err);
+        setError(err.response?.data?.message || 'Failed to load task');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTaskData();
+  }, [taskId]);
+
+  const handleSubmitReply = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Submit reply form');
-    alert('Reply will be submitted via API');
+    
+    if (!taskId || !commentContent.trim()) {
+      alert('Please enter a comment');
+      return;
+    }
+
+    if (USE_MOCK_DATA) {
+      alert('Reply submitted (mock mode)');
+      setCommentContent('');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await addTaskComment(Number(taskId), { content: commentContent });
+      // Refresh task data to get updated comments
+      const taskData = await getTask(Number(taskId));
+      setTask({
+        ...task,
+        comments: taskData.comments?.map((comment) => ({
+          id: comment.id,
+          content: comment.content || '',
+          status: null,
+          created_at: comment.createdAt || new Date().toISOString(),
+          user: {
+            id: comment.user?.id || 0,
+            name: comment.user?.name || 'Unknown',
+            role_id: 2,
+            department: {
+              name: comment.user?.department?.name || 'Unknown Department',
+            },
+          },
+          attachments: [],
+        })) || [],
+      });
+      setCommentContent('');
+      alert('Comment added successfully');
+    } catch (err: any) {
+      console.error('Error adding comment:', err);
+      alert(err.response?.data?.message || 'Failed to add comment');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  // Get return URL (back to PTI detail page)
-  const returnUrl = `/admin/ptis/1#row${task.id}`;
+  // Get return URL from location state or default
+  const returnUrl = (location.state as any)?.returnUrl || `/admin/tasks/${taskId}`;
+
+  if (loading) {
+    return <div className="text-center p-5">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center p-5 text-danger">Error: {error}</div>;
+  }
 
   return (
     <div className="content-wrapper">
@@ -422,7 +540,10 @@ export default function TaskComments() {
                             placeholder="type reply here..."
                             name="content"
                             rows={4}
+                            value={commentContent}
+                            onChange={(e) => setCommentContent(e.target.value)}
                             required
+                            disabled={submitting}
                           />
                         </div>
                         <div className="form-group">
@@ -476,7 +597,12 @@ export default function TaskComments() {
                         </div>
                       </div>
                     </div>
-                    <input className="btn btn-primary pull-right" type="submit" value="Submit" />
+                    <input 
+                      className="btn btn-primary pull-right" 
+                      type="submit" 
+                      value={submitting ? 'Submitting...' : 'Submit'}
+                      disabled={submitting}
+                    />
                   </form>
                 </div>
               </div>

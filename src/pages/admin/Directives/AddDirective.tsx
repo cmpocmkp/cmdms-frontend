@@ -1,26 +1,58 @@
 /**
  * Add Directive Form - Admin Module  
  * EXACT replica of admin/directives/add.blade.php from old CMDMS
+ * Integrated with real API following API_INTEGRATION_GUIDE.md
+ * 
+ * Note: API only supports: title, description, referenceNumber, priority, deadline, departmentIds
+ * Additional form fields (timeline, is_archived, attachments) are UI-only and not sent to API
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import * as directiveService from '../../../lib/services/directiveService';
+import * as commonService from '../../../lib/services/commonService';
+import { USE_MOCK_DATA } from '../../../lib/api';
 import { mockAdminDepartments } from '../../../lib/mocks/data/adminDepartments';
 
 export default function AddDirective() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [departments, setDepartments] = useState<Array<{ id: number; name: string }>>([]);
   const [formData, setFormData] = useState({
     subject: '',
     comments: '',
     letter_no: '',
     date: new Date().toISOString().split('T')[0],
     timeline: new Date().toISOString().split('T')[0],
+    priority: 'medium',
     other_department_ids: [] as string[],
     is_archived: false,
     attachments: [] as File[]
   });
 
-  const departments = mockAdminDepartments;
+  // Fetch departments from API
+  useEffect(() => {
+    fetchDepartments();
+  }, []);
+
+  const fetchDepartments = async () => {
+    try {
+      if (USE_MOCK_DATA) {
+        setDepartments(mockAdminDepartments);
+      } else {
+        const response = await commonService.getDepartmentsDropdown();
+        if (response.success && response.data) {
+          setDepartments(response.data);
+        } else {
+          setDepartments([]);
+        }
+      }
+    } catch (err: any) {
+      console.error('Error fetching departments:', err);
+      setDepartments(mockAdminDepartments); // Fallback to mock
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -62,12 +94,45 @@ export default function AddDirective() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('New directive:', formData);
-    // TODO: Implement API call when backend is ready
-    alert('Directive added successfully! (Mock)');
-    navigate('/admin/directives');
+    
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Map form data to API format
+      const apiData: directiveService.CreateDirectiveRequest = {
+        title: formData.subject,
+        description: formData.comments || undefined,
+        referenceNumber: formData.letter_no || undefined,
+        priority: formData.priority || 'medium',
+        deadline: formData.date || undefined,
+        departmentIds: formData.other_department_ids.map(id => parseInt(id, 10)),
+      };
+
+      if (USE_MOCK_DATA) {
+        // Mock create
+        await new Promise(resolve => setTimeout(resolve, 500));
+        alert('Directive added successfully! (Mock)');
+        navigate('/admin/directives');
+      } else {
+        // Real API call
+        const response = await directiveService.createDirective(apiData);
+
+        if (response.success && response.data) {
+          alert('Directive added successfully!');
+          navigate('/admin/directives');
+        } else {
+          setError(response.message || 'Failed to create directive');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error creating directive:', err);
+      setError(err.response?.data?.error?.message || 'Failed to create directive. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -81,6 +146,14 @@ export default function AddDirective() {
               </Link>
               <p className="card-title"><strong>Add new Directive</strong></p>
               <p className="card-description"></p>
+
+              {/* Error Message */}
+              {error && (
+                <div className="alert alert-danger" role="alert">
+                  <i className="ti-alert-circle mr-2"></i>
+                  <strong>Error:</strong> {error}
+                </div>
+              )}
 
               <form className="form-sample" onSubmit={handleSubmit} encType="multipart/form-data">
                 {/* Subject */}
@@ -231,7 +304,20 @@ export default function AddDirective() {
                   </div>
                 </div>
 
-                <button type="submit" className="btn btn-success mr-2">Save</button>
+                <button 
+                  type="submit" 
+                  className="btn btn-success mr-2"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>
+                      Submitting...
+                    </>
+                  ) : (
+                    'Save'
+                  )}
+                </button>
               </form>
             </div>
           </div>

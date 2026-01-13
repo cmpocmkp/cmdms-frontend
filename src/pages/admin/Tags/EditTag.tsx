@@ -1,10 +1,17 @@
 /**
  * Edit Tag Form - Admin Module
  * EXACT replica of admin/tags/edit.blade.php from old CMDMS
+ * 
+ * ⚠️ IMPORTANT NOTE: Tag Update endpoint is NOT documented in API_INTEGRATION_GUIDE.md
+ * This page is read-only for now. Tags can only be created, not updated via API.
+ * 
+ * Alternative: Delete and recreate tag if update is needed.
  */
 
 import { useState, useEffect } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
+import * as tagService from '../../../lib/services/tagService';
+import { USE_MOCK_DATA } from '../../../lib/api';
 import { mockAdminTags } from '../../../lib/mocks/data/adminTags';
 
 // Mock modules enum
@@ -24,35 +31,96 @@ const statuses = [
 
 export default function EditTag() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const [tag, setTag] = useState<any>(null);
+  const [tag, setTag] = useState<tagService.Tag | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
+    color: '',
     module: 'recordnotes',
     parent_id: '',
     status: 'active',
   });
+  const [availableTags, setAvailableTags] = useState<tagService.Tag[]>([]);
 
-  // Get parent tags (tags without parent, excluding current tag)
-  const parentTags = mockAdminTags.filter(
-    t => !t.parent_id && t.id !== parseInt(id || '0')
-  );
-
+  // Load tags for parent tag dropdown and current tag
   useEffect(() => {
-    const foundTag = mockAdminTags.find(t => t.id === parseInt(id || '0'));
-    if (foundTag) {
-      setTag(foundTag);
-      setFormData({
-        name: foundTag.name,
-        module: foundTag.module || 'recordnotes',
-        parent_id: foundTag.parent_id?.toString() || '',
-        status: 'active', // Mock status
-      });
-    } else {
-      alert('Tag not found');
-      navigate('/admin/tags');
+    fetchTags();
+  }, [id]);
+
+  const fetchTags = async () => {
+    try {
+      if (USE_MOCK_DATA) {
+        // Mock data fallback
+        const foundTag = mockAdminTags.find(t => t.id === parseInt(id || '0'));
+        if (foundTag) {
+          setTag({
+            id: foundTag.id,
+            name: foundTag.name,
+            color: undefined,
+            parentId: foundTag.parent_id,
+          } as tagService.Tag);
+          setFormData({
+            name: foundTag.name,
+            color: '',
+            module: foundTag.module || 'recordnotes',
+            parent_id: foundTag.parent_id?.toString() || '',
+            status: 'active',
+          });
+        }
+        setAvailableTags(mockAdminTags.map(t => ({ id: t.id, name: t.name })));
+      } else {
+        // Real API call
+        const response = await tagService.listTags();
+        if (response.success && response.data) {
+          setAvailableTags(response.data);
+          const foundTag = response.data.find(t => t.id === parseInt(id || '0'));
+          if (foundTag) {
+            setTag(foundTag);
+            setFormData({
+              name: foundTag.name,
+              color: foundTag.color || '',
+              module: 'recordnotes',
+              parent_id: foundTag.parentId?.toString() || '',
+              status: 'active',
+            });
+          } else {
+            setError('Tag not found');
+          }
+        } else {
+          setError('Failed to load tag');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error loading tags:', err);
+      setError(err.response?.data?.error?.message || 'Failed to load tag');
+      if (import.meta.env.DEV && USE_MOCK_DATA) {
+        const foundTag = mockAdminTags.find(t => t.id === parseInt(id || '0'));
+        if (foundTag) {
+          setTag({
+            id: foundTag.id,
+            name: foundTag.name,
+            color: undefined,
+            parentId: foundTag.parent_id,
+          } as tagService.Tag);
+          setFormData({
+            name: foundTag.name,
+            color: '',
+            module: foundTag.module || 'recordnotes',
+            parent_id: foundTag.parent_id?.toString() || '',
+            status: 'active',
+          });
+        }
+      }
+    } finally {
+      setLoading(false);
     }
-  }, [id, navigate]);
+  };
+
+  // Get parent tags (tags without parent, excluding current tag) - UI only, not in API
+  const parentTags = availableTags.filter(
+    t => !t.parentId && t.id !== parseInt(id || '0')
+  );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -64,13 +132,11 @@ export default function EditTag() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Tag updated:', formData);
-    // TODO: Implement API call when backend is ready
-    alert('Tag updated successfully! (Mock)');
-    navigate('/admin/tags');
+    // ⚠️ Tag update endpoint is not available in API guide
+    alert('⚠️ Tag update is not supported by the API. Please delete and recreate the tag if you need to modify it.');
   };
 
-  if (!tag) {
+  if (loading || !tag) {
     return (
       <div className="content-wrapper">
         <div className="card">
@@ -111,6 +177,19 @@ export default function EditTag() {
               </div>
             </div>
             <div className="card-body">
+              {error && (
+                <div className="alert alert-danger" role="alert">
+                  {error}
+                </div>
+              )}
+              
+              {!USE_MOCK_DATA && (
+                <div className="alert alert-warning" role="alert">
+                  <strong>⚠️ Note:</strong> Tag update endpoint is not documented in API_INTEGRATION_GUIDE.md. 
+                  This form is read-only. To modify a tag, delete and recreate it.
+                </div>
+              )}
+
               <form className="form-sample" onSubmit={handleSubmit}>
                 <p className="card-description">
                   {/* Hidden fields would go here */}

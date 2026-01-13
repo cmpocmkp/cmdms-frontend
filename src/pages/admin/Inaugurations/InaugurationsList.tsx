@@ -1,10 +1,16 @@
 /**
  * Inaugurations List - Admin Module
  * EXACT replica of admin/inaugrations/index.blade.php from old CMDMS
+ * Integrated with real API following API_INTEGRATION_GUIDE.md
+ * 
+ * Note: API structure (title, description, date, type, departmentId, districtId, projectCost) differs from frontend mock structure.
+ * Frontend fields like project_name, scheme, division_name, remarks are not in API.
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import * as inaugurationService from '../../../lib/services/inaugurationService';
+import { USE_MOCK_DATA } from '../../../lib/api';
 import { mockInaugurations } from '../../../lib/mocks/data/inaugurations';
 
 // Format date as 'jS F' (e.g., "15th December")
@@ -24,39 +30,123 @@ const formatDate = (dateString: string): string => {
 };
 
 export default function InaugurationsList() {
-  const [inaugurations] = useState(mockInaugurations);
+  const [inaugurations, setInaugurations] = useState<inaugurationService.Inauguration[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [deleting, setDeleting] = useState<number | null>(null);
 
-  // Filter inaugurations based on search term
-  const filteredInaugurations = useMemo(() => {
-    if (!searchTerm) return inaugurations;
-    
+  // Fetch inaugurations from API
+  useEffect(() => {
+    fetchInaugurations();
+  }, [currentPage, searchTerm]);
+
+  const fetchInaugurations = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (USE_MOCK_DATA) {
+        // Use mock data - convert to API format
+        const apiInaugurations: inaugurationService.Inauguration[] = mockInaugurations.map((inaug: any) => ({
+          id: inaug.id,
+          title: inaug.project_name || 'Inauguration',
+          description: inaug.description || '',
+          date: inaug.date,
+          type: inaug.type || 'inauguration',
+          departmentId: inaug.department_id,
+          districtId: inaug.district_id,
+          projectCost: inaug.cost ? inaug.cost * 1000000 : undefined, // Convert millions to actual cost
+        }));
+        setInaugurations(apiInaugurations);
+        setTotalPages(1);
+      } else {
+        // Real API call
+        const params: inaugurationService.ListInaugurationsParams = {
+          page: currentPage,
+          limit: 15,
+        };
+
+        if (searchTerm) {
+          params.search = searchTerm;
+        }
+
+        const response = await inaugurationService.listInaugurations(params);
+
+        if (response.success && response.data) {
+          setInaugurations(response.data);
+          setTotalPages(response.meta?.totalPages || 1);
+        } else {
+          setError(response.message || 'Failed to load inaugurations');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error fetching inaugurations:', err);
+      setError(err.response?.data?.error?.message || 'Failed to load inaugurations');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (inaugurationId: number) => {
+    if (!confirm('Are you sure to delete this inauguration? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeleting(inaugurationId);
+      
+      if (USE_MOCK_DATA) {
+        // Mock delete
+        setInaugurations(inaugurations.filter(i => i.id !== inaugurationId));
+        alert('Inauguration deleted successfully!');
+      } else {
+        // Real API delete
+        const response = await inaugurationService.deleteInauguration(inaugurationId);
+        
+        if (response.success) {
+          // Refresh the list
+          await fetchInaugurations();
+          alert('Inauguration deleted successfully!');
+        } else {
+          alert(response.message || 'Failed to delete inauguration');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error deleting inauguration:', err);
+      alert(err.response?.data?.error?.message || 'Failed to delete inauguration');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  // Filter inaugurations based on search term (client-side for mock, server-side for API)
+  const filteredInaugurations = USE_MOCK_DATA ? inaugurations.filter(inaug => {
+    if (!searchTerm) return true;
     const lowerSearch = searchTerm.toLowerCase();
-    return inaugurations.filter(inaug => 
-      inaug.department_name.toLowerCase().includes(lowerSearch) ||
-      inaug.project_name.toLowerCase().includes(lowerSearch) ||
-      (inaug.scheme && inaug.scheme.toLowerCase().includes(lowerSearch)) ||
-      inaug.district_name.toLowerCase().includes(lowerSearch) ||
-      inaug.division_name.toLowerCase().includes(lowerSearch) ||
-      inaug.description.toLowerCase().includes(lowerSearch) ||
-      (inaug.remarks && inaug.remarks.toLowerCase().includes(lowerSearch))
+    return (
+      inaug.title?.toLowerCase().includes(lowerSearch) ||
+      inaug.description?.toLowerCase().includes(lowerSearch) ||
+      inaug.type?.toLowerCase().includes(lowerSearch) ||
+      inaug.department?.name?.toLowerCase().includes(lowerSearch) ||
+      inaug.district?.name?.toLowerCase().includes(lowerSearch)
     );
-  }, [inaugurations, searchTerm]);
+  }) : inaugurations;
 
   // Handle Excel export
   const handleExcelExport = () => {
-    const headers = ['S.No', 'Department', 'Project Name', 'Scheme', 'Cost (Millions)', 'Description', 'District', 'Division', 'Expected Date', 'Remarks'];
+    const headers = ['S.No', 'Title', 'Description', 'Type', 'Department', 'District', 'Project Cost', 'Date'];
     const rows = filteredInaugurations.map((inaug, index) => [
-      index + 1,
-      inaug.department_name,
-      inaug.project_name.replace(/<[^>]*>/g, ''),
-      inaug.scheme ? inaug.scheme.replace(/<[^>]*>/g, '') : '',
-      inaug.cost,
-      inaug.description.replace(/<[^>]*>/g, ''),
-      inaug.district_name,
-      inaug.division_name,
-      formatDate(inaug.date),
-      inaug.remarks ? inaug.remarks.replace(/<[^>]*>/g, '') : ''
+      (currentPage - 1) * 15 + index + 1,
+      inaug.title || '',
+      inaug.description?.replace(/<[^>]*>/g, '') || '',
+      inaug.type || '',
+      inaug.department?.name || '',
+      inaug.district?.name || '',
+      inaug.projectCost ? `₹${(inaug.projectCost / 1000000).toFixed(2)}M` : '',
+      inaug.date ? formatDate(inaug.date) : ''
     ]);
     
     let csv = headers.join(',') + '\n';
@@ -93,21 +183,20 @@ export default function InaugurationsList() {
     printWindow.document.write('<h1>Inaugurations</h1>');
     printWindow.document.write('<table>');
     printWindow.document.write('<thead><tr>');
-    printWindow.document.write('<th>S.NO</th><th>Department</th><th>Scheme/Project Name</th><th>Cost</th><th>Inaugurations/GroundBreaking</th>');
-    printWindow.document.write('<th>District</th><th>Division</th><th>Expected Date</th><th>Remarks</th>');
+    printWindow.document.write('<th>S.NO</th><th>Title</th><th>Description</th><th>Type</th><th>Department</th>');
+    printWindow.document.write('<th>District</th><th>Project Cost</th><th>Date</th>');
     printWindow.document.write('</tr></thead><tbody>');
     
     filteredInaugurations.forEach((inaug, idx) => {
       printWindow.document.write('<tr>');
-      printWindow.document.write(`<td>${idx + 1}</td>`);
-      printWindow.document.write(`<td>${inaug.department_name}</td>`);
-      printWindow.document.write(`<td>${inaug.project_name}${inaug.scheme ? '<br/>' + inaug.scheme : ''}</td>`);
-      printWindow.document.write(`<td>${inaug.cost}</td>`);
-      printWindow.document.write(`<td>${inaug.description.replace(/<[^>]*>/g, '')}</td>`);
-      printWindow.document.write(`<td>${inaug.district_name}</td>`);
-      printWindow.document.write(`<td>${inaug.division_name}</td>`);
-      printWindow.document.write(`<td>${formatDate(inaug.date)}</td>`);
-      printWindow.document.write(`<td>${inaug.remarks ? inaug.remarks.replace(/<[^>]*>/g, '') : ''}</td>`);
+      printWindow.document.write(`<td>${(currentPage - 1) * 15 + idx + 1}</td>`);
+      printWindow.document.write(`<td>${inaug.title || ''}</td>`);
+      printWindow.document.write(`<td>${inaug.description?.replace(/<[^>]*>/g, '') || ''}</td>`);
+      printWindow.document.write(`<td>${inaug.type || ''}</td>`);
+      printWindow.document.write(`<td>${inaug.department?.name || ''}</td>`);
+      printWindow.document.write(`<td>${inaug.district?.name || ''}</td>`);
+      printWindow.document.write(`<td>${inaug.projectCost ? '₹' + (inaug.projectCost / 1000000).toFixed(2) + 'M' : ''}</td>`);
+      printWindow.document.write(`<td>${inaug.date ? formatDate(inaug.date) : ''}</td>`);
       printWindow.document.write('</tr>');
     });
     
@@ -276,111 +365,155 @@ export default function InaugurationsList() {
             }
           `}</style>
 
-          <div className="row">
-            <div className="col-12">
-              <div className="table-responsive">
-                <table id="directive-listing" className="table-striped" role="grid">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '15px' }}>S.NO</th>
-                      <th style={{ width: '100px' }}>Department</th>
-                      <th style={{ width: '100px' }}>Scheme<br/>/Project Name</th>
-                      <th style={{ width: '100px' }}>Cost in Millions</th>
-                      <th style={{ width: '100px' }}>Inaugurations<br/>/GroundBreaking</th>
-                      <th style={{ width: '100px' }}>District</th>
-                      <th style={{ width: '100px' }}>Division</th>
-                      <th style={{ width: '100px' }}>Expected Date</th>
-                      <th style={{ width: '100px' }}>Remarks</th>
-                      <th style={{ width: '100px' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredInaugurations.length > 0 ? (
-                      filteredInaugurations.map((inauguration, index) => (
-                        <tr key={inauguration.id}>
-                          <td style={{ width: '15px' }}>{index + 1}</td>
-                          <td style={{ width: '100px' }}>{inauguration.department_name}</td>
-                          <td style={{ width: '100px' }}>
-                            <div dangerouslySetInnerHTML={{ __html: (inauguration.project_name || '') }} />
-                            <br/>
-                            <div dangerouslySetInnerHTML={{ __html: (inauguration.scheme || '') }} />
-                            <br/>
-                            {inauguration.attachments && inauguration.attachments.length > 0 && (
-                              <>
-                                {inauguration.attachments.map((file, idx) => (
-                                  <span key={idx}>
-                                    <a
-                                      href="#"
-                                      title="click to download attach file"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        console.log('Download attachment:', file);
-                                      }}
-                                    >
-                                      Attachment:<i className="ti-file"></i>
-                                    </a>
-                                  </span>
-                                ))}
-                              </>
-                            )}
-                          </td>
-                          <td style={{ width: '100px' }}>{inauguration.cost ?? ''}</td>
-                          <td style={{ width: '100px' }}>
-                            <div dangerouslySetInnerHTML={{ __html: inauguration.description ?? '' }} />
-                          </td>
-                          <td style={{ width: '100px' }}>{inauguration.district_name}</td>
-                          <td style={{ width: '100px' }}>{inauguration.division_name}</td>
-                          <td style={{ width: '100px' }}>{formatDate(inauguration.date)}</td>
-                          <td style={{ width: '100px' }}>
-                            <div dangerouslySetInnerHTML={{ __html: inauguration.remarks ?? '' }} />
-                          </td>
-                          <td style={{ width: '100px' }}>
-                            <Link
-                              to={`/admin/inaugurations/edit/${inauguration.id}`}
-                              className="inauguration_id text-primary mr-2"
-                              title="edit"
-                              style={{ float: 'left', width: '20px' }}
-                            >
-                              <i className="ti-pencil-alt icon-sm"></i>
-                            </Link>
-                            &nbsp;&nbsp;
-                            <form
-                              action="#"
-                              method="POST"
-                              style={{ float: 'left', marginLeft: '10px', margin: 0 }}
-                              onSubmit={(e) => {
-                                e.preventDefault();
-                                console.log('Delete inauguration:', inauguration.id);
-                                alert('Delete functionality will be implemented with backend API');
-                              }}
-                            >
-                              <button
-                                type="submit"
-                                className="btn btn-danger btn-icon-text"
-                                title="delete"
-                                onClick={(e) => {
-                                  if (!confirm('Are you sure to delete?')) {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                  }
-                                }}
+          {/* Loading State */}
+          {loading && (
+            <div className="text-center p-5">
+              <div className="spinner-border text-primary" role="status">
+                <span className="sr-only">Loading...</span>
+              </div>
+              <p className="mt-2 text-muted">Loading inaugurations...</p>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && !loading && (
+            <div className="alert alert-danger" role="alert">
+              <i className="ti-alert-circle mr-2"></i>
+              <strong>Error:</strong> {error}
+              <button 
+                className="btn btn-sm btn-outline-danger ml-3" 
+                onClick={fetchInaugurations}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {/* Content */}
+          {!loading && !error && (
+            <div className="row">
+              <div className="col-12">
+                <div className="table-responsive">
+                  <table id="directive-listing" className="table-striped" role="grid">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '15px' }}>S.NO</th>
+                        <th style={{ width: '100px' }}>Title</th>
+                        <th style={{ width: '100px' }}>Description</th>
+                        <th style={{ width: '100px' }}>Type</th>
+                        <th style={{ width: '100px' }}>Department</th>
+                        <th style={{ width: '100px' }}>District</th>
+                        <th style={{ width: '100px' }}>Project Cost</th>
+                        <th style={{ width: '100px' }}>Date</th>
+                        <th style={{ width: '100px' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredInaugurations.length > 0 ? (
+                        filteredInaugurations.map((inauguration, index) => (
+                          <tr key={inauguration.id}>
+                            <td style={{ width: '15px' }}>{(currentPage - 1) * 15 + index + 1}</td>
+                            <td style={{ width: '100px' }}>{inauguration.title || '-'}</td>
+                            <td style={{ width: '100px' }}>
+                              <div dangerouslySetInnerHTML={{ __html: (inauguration.description || '') }} />
+                            </td>
+                            <td style={{ width: '100px' }}>{inauguration.type || '-'}</td>
+                            <td style={{ width: '100px' }}>{inauguration.department?.name || '-'}</td>
+                            <td style={{ width: '100px' }}>{inauguration.district?.name || '-'}</td>
+                            <td style={{ width: '100px' }}>
+                              {inauguration.projectCost ? `₹${(inauguration.projectCost / 1000000).toFixed(2)}M` : '-'}
+                            </td>
+                            <td style={{ width: '100px' }}>
+                              {inauguration.date ? formatDate(inauguration.date) : '-'}
+                            </td>
+                            <td style={{ width: '100px' }}>
+                              <Link
+                                to={`/admin/inaugurations/edit/${inauguration.id}`}
+                                className="btn btn-sm btn-info mb-2 mx-2"
+                                style={{ width: '45px' }}
+                                title="Edit inauguration"
                               >
-                                <i className="ti-trash icon-sm"></i>
+                                <i className="ti-pencil"></i>
+                              </Link>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-danger mb-2 mx-2"
+                                style={{ width: '45px' }}
+                                title="Delete inauguration"
+                                onClick={() => handleDelete(inauguration.id)}
+                                disabled={deleting === inauguration.id}
+                              >
+                                {deleting === inauguration.id ? (
+                                  <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                ) : (
+                                  <i className="ti-trash icon-sm"></i>
+                                )}
                               </button>
-                            </form>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={9}>
+                            {searchTerm ? `No inaugurations found matching "${searchTerm}"` : 'There is no data.'}
                           </td>
                         </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={10}>There are no data.</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Pagination */}
+          {!USE_MOCK_DATA && totalPages > 1 && (
+            <div className="pagination flex-wrap pagination-rounded-flat pagination-success mt-3">
+              <nav>
+                <ul className="pagination">
+                  <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                    <button 
+                      className="page-link" 
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </button>
+                  </li>
+                  {(() => {
+                    const pageNumbers = [];
+                    const maxPagesToShow = 5;
+                    let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+                    let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+
+                    if (endPage - startPage + 1 < maxPagesToShow) {
+                      startPage = Math.max(1, endPage - maxPagesToShow + 1);
+                    }
+
+                    for (let i = startPage; i <= endPage; i++) {
+                      pageNumbers.push(
+                        <li key={i} className={`page-item ${currentPage === i ? 'active' : ''}`}>
+                          <button className="page-link" onClick={() => setCurrentPage(i)}>
+                            {i}
+                          </button>
+                        </li>
+                      );
+                    }
+                    return pageNumbers;
+                  })()}
+                  <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                    <button 
+                      className="page-link" 
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </button>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+          )}
         </div>
       </div>
     </div>

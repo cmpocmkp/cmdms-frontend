@@ -1,10 +1,16 @@
 /**
  * Add Sectorial Meeting - Admin Module
  * EXACT replica of admin/sectorialmeetings/add.blade.php from old CMDMS
+ * Integrated with real API following API_INTEGRATION_GUIDE.md
+ * 
+ * Note: API only supports: title, date, sector
+ * Additional form fields (time, meetingType, meetingNumber, departments, attendees, attachments) are UI-only and not sent to API
  */
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import * as sectoralMeetingService from '../../../lib/services/sectoralMeetingService';
+import { USE_MOCK_DATA } from '../../../lib/api';
 import { mockAdminDepartments } from '../../../lib/mocks/data/adminDepartments';
 
 // Meeting types from old CMDMS enum (MeetingTypes)
@@ -44,14 +50,21 @@ const meetingNumbers: Record<string, string> = {
 };
 
 export default function AddSectorialMeeting() {
-  // Default date and time to today/now (matching old CMDMS behavior)
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Default date to today (matching old CMDMS behavior)
   const today = new Date();
   const dateStr = today.toISOString().split('T')[0];
   const timeStr = today.toTimeString().slice(0, 5); // HH:mm format
 
-  const [subject, setSubject] = useState('');
+  // API fields
+  const [title, setTitle] = useState('');
   const [sector, setSector] = useState('');
   const [date, setDate] = useState(dateStr);
+  
+  // UI-only fields (not sent to API)
   const [time, setTime] = useState(timeStr);
   const [meetingType, setMeetingType] = useState<string>('1'); // Default to NORMAL (1)
   const [meetingNumber, setMeetingNumber] = useState<string>('111'); // Default to First Meeting
@@ -59,27 +72,42 @@ export default function AddSectorialMeeting() {
   const [attendees, setAttendees] = useState('');
   const [attachmentFiles, setAttachmentFiles] = useState<FileList | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!departments || departments.length === 0) {
-      alert('Please select at least one department.');
-      return;
-    }
+    try {
+      setLoading(true);
+      setError(null);
 
-    console.log('Add Sectorial Meeting:', {
-      subject,
-      sector,
-      date,
-      time,
-      meeting_type: meetingType,
-      meeting_number: meetingNumber,
-      departments,
-      attendies: attendees,
-      attachments: attachmentFiles ? Array.from(attachmentFiles) : []
-    });
-    alert('Add Sectorial Meeting functionality will be implemented with backend API');
-    // Navigate would be: navigate('/admin/sectorialmeetings');
+      // Map form data to API format (only documented fields)
+      const apiData: sectoralMeetingService.CreateSectoralMeetingRequest = {
+        title: title || '',
+        date: date || undefined,
+        sector: sector || undefined,
+      };
+
+      if (USE_MOCK_DATA) {
+        // Mock create
+        await new Promise(resolve => setTimeout(resolve, 500));
+        alert('Sectoral meeting added successfully! (Mock)');
+        navigate('/admin/sectorialmeetings');
+      } else {
+        // Real API call
+        const response = await sectoralMeetingService.createSectoralMeeting(apiData);
+
+        if (response.success && response.data) {
+          alert('Sectoral meeting added successfully!');
+          navigate('/admin/sectorialmeetings');
+        } else {
+          setError(response.message || 'Failed to create sectoral meeting');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error creating sectoral meeting:', err);
+      setError(err.response?.data?.error?.message || 'Failed to create sectoral meeting. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,31 +147,34 @@ export default function AddSectorialMeeting() {
               </div>
             </div>
             <div className="card-body">
+              {/* Error Message */}
+              {error && (
+                <div className="alert alert-danger" role="alert">
+                  <i className="ti-alert-circle mr-2"></i>
+                  <strong>Error:</strong> {error}
+                </div>
+              )}
+
               <form
                 className="form-sample"
                 onSubmit={handleSubmit}
                 encType="multipart/form-data"
                 id="add_sectorial_meeting_form"
               >
-                <p className="card-description">
-                  <input type="hidden" name="created_by" value="1" /> {/* Will be replaced with actual user ID */}
-                  <input type="hidden" name="department_id" value="" />
-                </p>
-
                 {/* row start */}
                 <div className="row">
                   <div className="col-md-6">
                     <div className="form-group">
                       <label>
-                        Sectorial Meeting Subject <span className="text-danger">*</span>
+                        Sectorial Meeting Title <span className="text-danger">*</span>
                       </label>
                       <input
                         type="text"
-                        name="subject"
-                        id="sectorial_meeting_subject"
+                        name="title"
+                        id="sectorial_meeting_title"
                         className="form-control"
-                        value={subject}
-                        onChange={(e) => setSubject(e.target.value)}
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
                         required
                       />
                     </div>
@@ -164,10 +195,10 @@ export default function AddSectorialMeeting() {
                 </div>
 
                 <div className="row">
-                  <div className="col-md-3">
+                  <div className="col-md-6">
                     <div className="form-group">
                       <label>
-                        Meeting Date <span className="text-danger">*</span>
+                        Meeting Date
                       </label>
                       <input
                         type="date"
@@ -176,13 +207,25 @@ export default function AddSectorialMeeting() {
                         className="form-control"
                         value={date}
                         onChange={(e) => setDate(e.target.value)}
-                        required
                       />
                     </div>
                   </div>
+                </div>
+
+                {/* UI-Only Fields (Not sent to API) */}
+                <div className="row">
+                  <div className="col-md-12">
+                    <hr />
+                    <small className="text-muted">
+                      <strong>Note:</strong> The following fields are UI-only and not sent to the API (not documented in API_INTEGRATION_GUIDE.md):
+                    </small>
+                  </div>
+                </div>
+
+                <div className="row">
                   <div className="col-md-3">
                     <div className="form-group">
-                      <label>Meeting Time</label>
+                      <label>Meeting Time <small className="text-muted">(UI-only)</small></label>
                       <input
                         type="time"
                         name="time"
@@ -195,7 +238,7 @@ export default function AddSectorialMeeting() {
                   </div>
                   <div className="col-md-3">
                     <div className="form-group">
-                      <label>Meeting Type</label>
+                      <label>Meeting Type <small className="text-muted">(UI-only)</small></label>
                       <select
                         name="meeting_type"
                         id="meeting_type"
@@ -213,7 +256,7 @@ export default function AddSectorialMeeting() {
                   </div>
                   <div className="col-md-3">
                     <div className="form-group">
-                      <label>Meeting Number</label>
+                      <label>Meeting Number <small className="text-muted">(UI-only)</small></label>
                       <select
                         id="meeting_number"
                         name="meeting_number"
@@ -235,7 +278,7 @@ export default function AddSectorialMeeting() {
                   <div className="col-md-8">
                     <div className="form-group">
                       <label>
-                        Departments <span className="text-danger">*</span>
+                        Departments <small className="text-muted">(UI-only)</small>
                       </label>
                       <select
                         id="departments"
@@ -254,14 +297,14 @@ export default function AddSectorialMeeting() {
                         ))}
                       </select>
                       <small className="form-text text-muted">
-                        Select one or more departments for this sectorial meeting
+                        Select one or more departments for this sectorial meeting (UI-only, not sent to API)
                       </small>
                     </div>
                   </div>
                   <div className="col-md-4">
                     <div className="form-group">
                       <label>
-                        Attach Documents <small>(if any)</small>
+                        Attach Documents <small className="text-muted">(UI-only)</small>
                       </label>
                       <input
                         type="file"
@@ -297,7 +340,7 @@ export default function AddSectorialMeeting() {
                 <div className="row">
                   <div className="col-md-12">
                     <div className="form-group">
-                      <label>Meeting Attendees</label>
+                      <label>Meeting Attendees <small className="text-muted">(UI-only)</small></label>
                       <textarea
                         className="form-control"
                         id="attendies"
@@ -315,8 +358,21 @@ export default function AddSectorialMeeting() {
                 <div className="row">
                   <div className="col-md-12">
                     <div className="form-group text-left">
-                      <button type="submit" className="btn btn-success mr-2">
-                        <i className="ti-save mr-1"></i>Save Meeting
+                      <button 
+                        type="submit" 
+                        className="btn btn-success mr-2"
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <>
+                            <span className="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>
+                            Submitting...
+                          </>
+                        ) : (
+                          <>
+                            <i className="ti-save mr-1"></i>Save Meeting
+                          </>
+                        )}
                       </button>
                       <Link to="/admin/sectorialmeetings" className="btn btn-light">
                         <i className="ti-arrow-left mr-1"></i>Cancel

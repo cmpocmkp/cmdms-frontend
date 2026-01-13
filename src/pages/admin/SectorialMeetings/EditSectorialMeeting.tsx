@@ -1,11 +1,16 @@
 /**
  * Edit Sectorial Meeting - Admin Module
  * EXACT replica of admin/sectorialmeetings/edit.blade.php from old CMDMS
+ * Integrated with real API following API_INTEGRATION_GUIDE.md
+ * 
+ * Note: API only supports: title, date, sector
+ * Additional form fields (time, meetingType, meetingNumber, departments, attendees, attachments) are UI-only and not sent to API
  */
 
 import { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { mockSectorialMeetings } from '../../../lib/mocks/data/sectorialMeetings';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import * as sectoralMeetingService from '../../../lib/services/sectoralMeetingService';
+import { USE_MOCK_DATA } from '../../../lib/api';
 import { mockAdminDepartments } from '../../../lib/mocks/data/adminDepartments';
 
 // Meeting types from old CMDMS enum (MeetingTypes)
@@ -46,11 +51,18 @@ const meetingNumbers: Record<string, string> = {
 
 export default function EditSectorialMeeting() {
   const { id } = useParams<{ id: string }>();
-  const meeting = mockSectorialMeetings.find(m => m.id === Number(id));
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [meeting, setMeeting] = useState<sectoralMeetingService.SectoralMeeting | null>(null);
 
-  const [subject, setSubject] = useState('');
+  // API fields
+  const [title, setTitle] = useState('');
   const [sector, setSector] = useState('');
   const [date, setDate] = useState('');
+  
+  // UI-only fields (not sent to API)
   const [time, setTime] = useState('');
   const [meetingType, setMeetingType] = useState<string>('1');
   const [meetingNumber, setMeetingNumber] = useState<string>('111');
@@ -58,49 +70,125 @@ export default function EditSectorialMeeting() {
   const [attendees, setAttendees] = useState('');
   const [attachmentFiles, setAttachmentFiles] = useState<FileList | null>(null);
 
+  // Fetch meeting from API
   useEffect(() => {
-    if (meeting) {
-      setSubject(meeting.subject);
-      setSector(meeting.sector || '');
-      setDate(meeting.date);
-      setTime(meeting.time || '');
-      setMeetingType((meeting.meeting_type_id || 1).toString());
-      setMeetingNumber(meeting.meeting_number || '111');
-      setDepartments(meeting.departments.map(d => d.toString()));
-      setAttendees(meeting.attendies || '');
+    if (id) {
+      fetchMeeting();
     }
-  }, [meeting]);
+  }, [id]);
+
+  const fetchMeeting = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (USE_MOCK_DATA) {
+        // Mock data
+        const mockMeeting: sectoralMeetingService.SectoralMeeting = {
+          id: Number(id),
+          title: 'Mock Sectoral Meeting',
+          date: new Date().toISOString().split('T')[0],
+          sector: 'Education',
+        };
+        setMeeting(mockMeeting);
+        setTitle(mockMeeting.title);
+        setSector(mockMeeting.sector || '');
+        setDate(mockMeeting.date || '');
+      } else {
+        // Real API call
+        const response = await sectoralMeetingService.getSectoralMeeting(Number(id));
+
+        if (response.success && response.data) {
+          setMeeting(response.data);
+          setTitle(response.data.title || '');
+          setSector(response.data.sector || '');
+          setDate(response.data.date || '');
+        } else {
+          setError(response.message || 'Sectorial meeting not found');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error fetching sectoral meeting:', err);
+      setError(err.response?.data?.error?.message || 'Failed to load sectoral meeting');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="content-wrapper">
+        <div className="text-center p-5">
+          <div className="spinner-border text-primary" role="status">
+            <span className="sr-only">Loading...</span>
+          </div>
+          <p className="mt-2 text-muted">Loading sectoral meeting...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !meeting) {
+    return (
+      <div className="content-wrapper">
+        <div className="alert alert-danger" role="alert">
+          <i className="ti-alert-circle mr-2"></i>
+          <strong>Error:</strong> {error}
+          <Link to="/admin/sectorialmeetings" className="btn btn-sm btn-outline-danger ml-3">
+            Back to List
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (!meeting) {
     return (
       <div className="content-wrapper">
         <div className="alert alert-danger">Sectorial Meeting not found</div>
+        <Link to="/admin/sectorialmeetings" className="btn btn-outline-primary">
+          Back to List
+        </Link>
       </div>
     );
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!departments || departments.length === 0) {
-      alert('Please select at least one department.');
-      return;
-    }
+    try {
+      setUpdating(true);
+      setError(null);
 
-    console.log('Update Sectorial Meeting:', {
-      id: meeting.id,
-      subject,
-      sector,
-      date,
-      time,
-      meeting_type: meetingType,
-      meeting_number: meetingNumber,
-      departments,
-      attendies: attendees,
-      attachments: attachmentFiles ? Array.from(attachmentFiles) : []
-    });
-    alert('Update Sectorial Meeting functionality will be implemented with backend API');
-    // Navigate would be: navigate('/admin/sectorialmeetings');
+      // Map form data to API format (only documented fields)
+      const updateData: sectoralMeetingService.UpdateSectoralMeetingRequest = {
+        title: title || undefined,
+        date: date || undefined,
+        sector: sector || undefined,
+      };
+
+      if (USE_MOCK_DATA) {
+        // Mock update
+        await new Promise(resolve => setTimeout(resolve, 500));
+        alert('Sectoral meeting updated successfully! (Mock)');
+        navigate('/admin/sectorialmeetings');
+      } else {
+        // Real API call
+        const response = await sectoralMeetingService.updateSectoralMeeting(Number(id), updateData);
+
+        if (response.success && response.data) {
+          alert('Sectoral meeting updated successfully!');
+          navigate('/admin/sectorialmeetings');
+        } else {
+          setError(response.message || 'Failed to update sectoral meeting');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error updating sectoral meeting:', err);
+      setError(err.response?.data?.error?.message || 'Failed to update sectoral meeting. Please try again.');
+    } finally {
+      setUpdating(false);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -140,31 +228,34 @@ export default function EditSectorialMeeting() {
               </div>
             </div>
             <div className="card-body">
+              {/* Error Message */}
+              {error && (
+                <div className="alert alert-danger" role="alert">
+                  <i className="ti-alert-circle mr-2"></i>
+                  <strong>Error:</strong> {error}
+                </div>
+              )}
+
               <form
                 className="form-sample"
                 onSubmit={handleSubmit}
                 encType="multipart/form-data"
                 id="edit_sectorial_meeting_form"
               >
-                <p className="card-description">
-                  <input type="hidden" name="modified_by" value="1" /> {/* Will be replaced with actual user ID */}
-                  <input type="hidden" name="department_id" value="" />
-                </p>
-
                 {/* row start */}
                 <div className="row">
                   <div className="col-md-6">
                     <div className="form-group">
                       <label>
-                        Meeting Subject <span className="text-danger">*</span>
+                        Meeting Title <span className="text-danger">*</span>
                       </label>
                       <input
                         type="text"
-                        name="subject"
-                        id="sectorial_meeting_subject"
+                        name="title"
+                        id="sectorial_meeting_title"
                         className="form-control"
-                        value={subject}
-                        onChange={(e) => setSubject(e.target.value)}
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
                         required
                       />
                     </div>
@@ -185,10 +276,10 @@ export default function EditSectorialMeeting() {
                 </div>
 
                 <div className="row">
-                  <div className="col-md-3">
+                  <div className="col-md-6">
                     <div className="form-group">
                       <label>
-                        Meeting Date <span className="text-danger">*</span>
+                        Meeting Date
                       </label>
                       <input
                         type="date"
@@ -197,13 +288,25 @@ export default function EditSectorialMeeting() {
                         className="form-control"
                         value={date}
                         onChange={(e) => setDate(e.target.value)}
-                        required
                       />
                     </div>
                   </div>
+                </div>
+
+                {/* UI-Only Fields (Not sent to API) */}
+                <div className="row">
+                  <div className="col-md-12">
+                    <hr />
+                    <small className="text-muted">
+                      <strong>Note:</strong> The following fields are UI-only and not sent to the API (not documented in API_INTEGRATION_GUIDE.md):
+                    </small>
+                  </div>
+                </div>
+
+                <div className="row">
                   <div className="col-md-3">
                     <div className="form-group">
-                      <label>Meeting Time</label>
+                      <label>Meeting Time <small className="text-muted">(UI-only)</small></label>
                       <input
                         type="time"
                         name="time"
@@ -216,7 +319,7 @@ export default function EditSectorialMeeting() {
                   </div>
                   <div className="col-md-3">
                     <div className="form-group">
-                      <label>Meeting Type</label>
+                      <label>Meeting Type <small className="text-muted">(UI-only)</small></label>
                       <select
                         name="meeting_type"
                         id="meeting_type"
@@ -234,7 +337,7 @@ export default function EditSectorialMeeting() {
                   </div>
                   <div className="col-md-3">
                     <div className="form-group">
-                      <label>Meeting Number</label>
+                      <label>Meeting Number <small className="text-muted">(UI-only)</small></label>
                       <select
                         id="meeting_number"
                         name="meeting_number"
@@ -256,7 +359,7 @@ export default function EditSectorialMeeting() {
                   <div className="col-md-8">
                     <div className="form-group">
                       <label>
-                        Departments <span className="text-danger">*</span>
+                        Departments <small className="text-muted">(UI-only)</small>
                       </label>
                       <select
                         id="departments"
@@ -275,14 +378,14 @@ export default function EditSectorialMeeting() {
                         ))}
                       </select>
                       <small className="form-text text-muted">
-                        Select one or more departments for this sectorial meeting
+                        Select one or more departments for this sectorial meeting (UI-only, not sent to API)
                       </small>
                     </div>
                   </div>
                   <div className="col-md-4">
                     <div className="form-group">
                       <label>
-                        Update Attach Documents <small>(if any)</small>
+                        Update Attach Documents <small className="text-muted">(UI-only)</small>
                       </label>
                       <input
                         type="file"
@@ -311,24 +414,7 @@ export default function EditSectorialMeeting() {
                           </button>
                         </span>
                       </div>
-                      {meeting.attachments && meeting.attachments.length > 0 && (
-                        <div style={{ marginTop: '10px' }}>
-                          {meeting.attachments.map((file, idx) => (
-                            <span key={idx} style={{ display: 'block', marginBottom: '5px' }}>
-                              <a
-                                href="#"
-                                title="click to download attach file"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  console.log('Download attachment:', file);
-                                }}
-                              >
-                                Attachment:<i className="ti-file"></i>
-                              </a>
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                      {/* Note: Attachments not in API response */}
                     </div>
                   </div>
                 </div>
@@ -336,7 +422,7 @@ export default function EditSectorialMeeting() {
                 <div className="row">
                   <div className="col-md-12">
                     <div className="form-group">
-                      <label>Meeting Attendees</label>
+                      <label>Meeting Attendees <small className="text-muted">(UI-only)</small></label>
                       <textarea
                         className="form-control"
                         id="attendies"
@@ -354,8 +440,21 @@ export default function EditSectorialMeeting() {
                 <div className="row">
                   <div className="col-md-12">
                     <div className="form-group text-left">
-                      <button type="submit" className="btn btn-success mr-2">
-                        <i className="ti-save mr-1"></i>Update Meeting
+                      <button 
+                        type="submit" 
+                        className="btn btn-success mr-2"
+                        disabled={updating}
+                      >
+                        {updating ? (
+                          <>
+                            <span className="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>
+                            Updating...
+                          </>
+                        ) : (
+                          <>
+                            <i className="ti-save mr-1"></i>Update Meeting
+                          </>
+                        )}
                       </button>
                       <Link to="/admin/sectorialmeetings" className="btn btn-light">
                         <i className="ti-arrow-left mr-1"></i>Cancel

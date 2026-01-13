@@ -1,40 +1,143 @@
 /**
  * Announcements List - Admin Module
  * EXACT replica of admin/announcements/index.blade.php from old CMDMS
+ * Integrated with real API following API_INTEGRATION_GUIDE.md
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import * as announcementService from '../../../lib/services/announcementService';
+import { mapAnnouncementToDisplay, type DisplayAnnouncement } from '../../../lib/utils/announcementMapper';
+import { USE_MOCK_DATA } from '../../../lib/api';
 import { mockAnnouncements } from '../../../lib/mocks/data/announcements';
 
 export default function AnnouncementsList() {
-  const [announcements] = useState(mockAnnouncements);
+  const [announcements, setAnnouncements] = useState<DisplayAnnouncement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(15);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [deleting, setDeleting] = useState<number | null>(null);
 
+  // Fetch announcements from API
+  useEffect(() => {
+    fetchAnnouncements();
+  }, [currentPage, itemsPerPage, searchTerm]);
+
+  const fetchAnnouncements = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (USE_MOCK_DATA) {
+        // Use mock data - convert to display format
+        const mockDisplay = mockAnnouncements.map((ann: any) => ({
+          id: ann.id,
+          title: `${ann.district_name} - ${ann.venue}`,
+          description: ann.venue,
+          startDate: ann.date,
+          departmentIds: [ann.district_id],
+          departments: [{ id: ann.district_id, name: ann.district_name }],
+        }));
+        setAnnouncements(mockDisplay as DisplayAnnouncement[]);
+        setTotal(mockAnnouncements.length);
+        setTotalPages(Math.ceil(mockAnnouncements.length / itemsPerPage));
+      } else {
+        // Real API call
+        const params: announcementService.ListAnnouncementsParams = {
+          page: currentPage,
+          limit: itemsPerPage,
+        };
+
+        if (searchTerm) {
+          params.search = searchTerm;
+        }
+
+        const response = await announcementService.listAnnouncements(params);
+
+        if (response.success && response.data) {
+          // Map API response to display format
+          const mappedAnnouncements = response.data.map(mapAnnouncementToDisplay);
+          setAnnouncements(mappedAnnouncements);
+          setTotal(response.meta?.total || mappedAnnouncements.length);
+          setTotalPages(response.meta?.totalPages || Math.ceil(mappedAnnouncements.length / itemsPerPage));
+        } else {
+          setError(response.message || 'Failed to load announcements');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error fetching announcements:', err);
+      setError(err.response?.data?.error?.message || 'Failed to load announcements');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // For real API, filtering is done server-side, so we use announcements directly
+  // For mock data, we still do client-side filtering
   const filteredAnnouncements = useMemo(() => {
-    if (!searchTerm) return announcements;
-    
-    return announcements.filter(announcement =>
-      announcement.district_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      announcement.venue.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [announcements, searchTerm]);
+    if (USE_MOCK_DATA) {
+      if (!searchTerm) return announcements;
+      
+      return announcements.filter(announcement =>
+        announcement.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        announcement.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    // For real API, announcements are already filtered server-side
+    return announcements;
+  }, [announcements, searchTerm, USE_MOCK_DATA]);
 
-  const totalPages = Math.ceil(filteredAnnouncements.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedAnnouncements = filteredAnnouncements.slice(startIndex, endIndex);
+  const paginatedAnnouncements = USE_MOCK_DATA 
+    ? filteredAnnouncements.slice(startIndex, endIndex)
+    : filteredAnnouncements; // API already returns paginated data
+
+  const handleDelete = async (announcementId: number) => {
+    if (!confirm('Are you sure you want to delete this announcement? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeleting(announcementId);
+      
+      if (USE_MOCK_DATA) {
+        // Mock delete
+        setAnnouncements(announcements.filter(a => a.id !== announcementId));
+        alert('Announcement deleted successfully!');
+      } else {
+        // Real API delete
+        const response = await announcementService.deleteAnnouncement(announcementId);
+        
+        if (response.success) {
+          // Refresh the list
+          await fetchAnnouncements();
+          alert('Announcement deleted successfully!');
+        } else {
+          alert(response.message || 'Failed to delete announcement');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error deleting announcement:', err);
+      alert(err.response?.data?.error?.message || 'Failed to delete announcement');
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   // Export Functions - Matching old CMDMS DataTables functionality
   const handleCopy = () => {
-    const headers = ['S.No', 'District', 'Venue', 'Visit Date'];
+    const headers = ['S.No', 'Title', 'Description', 'Date', 'Departments'];
     const rows = filteredAnnouncements.map((ann, idx) => [
       idx + 1,
-      ann.district_name,
-      ann.venue.replace(/<[^>]*>/g, ''),
-      new Date(ann.date).toLocaleDateString('en-GB')
+      ann.title,
+      ann.description?.replace(/<[^>]*>/g, '') || '',
+      ann.startDate ? new Date(ann.startDate).toLocaleDateString('en-GB') : '',
+      ann.departments?.map(d => d.name).join(', ') || ''
     ]);
     
     const text = [headers, ...rows].map(row => row.join('\t')).join('\n');
@@ -46,12 +149,13 @@ export default function AnnouncementsList() {
   };
 
   const handleExcel = () => {
-    const headers = ['S.No', 'District', 'Venue', 'Visit Date'];
+    const headers = ['S.No', 'Title', 'Description', 'Date', 'Departments'];
     const rows = filteredAnnouncements.map((ann, idx) => [
       idx + 1,
-      ann.district_name,
-      ann.venue.replace(/<[^>]*>/g, ''),
-      new Date(ann.date).toLocaleDateString('en-GB')
+      ann.title,
+      ann.description?.replace(/<[^>]*>/g, '') || '',
+      ann.startDate ? new Date(ann.startDate).toLocaleDateString('en-GB') : '',
+      ann.departments?.map(d => d.name).join(', ') || ''
     ]);
     
     let csv = headers.join(',') + '\n';
@@ -68,12 +172,13 @@ export default function AnnouncementsList() {
   };
 
   const handleCSV = () => {
-    const headers = ['S.No', 'District', 'Venue', 'Visit Date'];
+    const headers = ['S.No', 'Title', 'Description', 'Date', 'Departments'];
     const rows = filteredAnnouncements.map((ann, idx) => [
       idx + 1,
-      ann.district_name,
-      ann.venue.replace(/<[^>]*>/g, ''),
-      new Date(ann.date).toLocaleDateString('en-GB')
+      ann.title,
+      ann.description?.replace(/<[^>]*>/g, '') || '',
+      ann.startDate ? new Date(ann.startDate).toLocaleDateString('en-GB') : '',
+      ann.departments?.map(d => d.name).join(', ') || ''
     ]);
     
     let csv = headers.join(',') + '\n';
@@ -97,15 +202,16 @@ export default function AnnouncementsList() {
       (pdfMake as any).vfs = (pdfFonts as any).pdfMake?.vfs || (pdfFonts as any).default?.pdfMake?.vfs;
       
       const tableData = [
-        ['S.No', 'District', 'Venue', 'Visit Date']
+        ['S.No', 'Title', 'Description', 'Date', 'Departments']
       ];
       
       filteredAnnouncements.forEach((ann, idx) => {
         tableData.push([
           String(idx + 1),
-          ann.district_name,
-          ann.venue.replace(/<[^>]*>/g, '').substring(0, 150),
-          new Date(ann.date).toLocaleDateString('en-GB')
+          ann.title.substring(0, 100),
+          ann.description?.replace(/<[^>]*>/g, '').substring(0, 150) || '',
+          ann.startDate ? new Date(ann.startDate).toLocaleDateString('en-GB') : '',
+          ann.departments?.map(d => d.name).join(', ').substring(0, 80) || ''
         ]);
       });
       
@@ -175,15 +281,16 @@ export default function AnnouncementsList() {
     printWindow.document.write('<h1>Announcements</h1>');
     printWindow.document.write('<table>');
     printWindow.document.write('<thead><tr>');
-    printWindow.document.write('<th>S.No</th><th>District</th><th>Venue</th><th>Visit Date</th>');
+    printWindow.document.write('<th>S.No</th><th>Title</th><th>Description</th><th>Date</th><th>Departments</th>');
     printWindow.document.write('</tr></thead><tbody>');
     
     filteredAnnouncements.forEach((ann, idx) => {
       printWindow.document.write('<tr>');
       printWindow.document.write(`<td>${idx + 1}</td>`);
-      printWindow.document.write(`<td>${ann.district_name}</td>`);
-      printWindow.document.write(`<td>${ann.venue.replace(/<[^>]*>/g, '')}</td>`);
-      printWindow.document.write(`<td>${new Date(ann.date).toLocaleDateString('en-GB')}</td>`);
+      printWindow.document.write(`<td>${ann.title}</td>`);
+      printWindow.document.write(`<td>${ann.description?.replace(/<[^>]*>/g, '') || ''}</td>`);
+      printWindow.document.write(`<td>${ann.startDate ? new Date(ann.startDate).toLocaleDateString('en-GB') : ''}</td>`);
+      printWindow.document.write(`<td>${ann.departments?.map(d => d.name).join(', ') || ''}</td>`);
       printWindow.document.write('</tr>');
     });
     
@@ -215,6 +322,33 @@ export default function AnnouncementsList() {
           </div>
         </div>
         <div className="card-body">
+          {/* Loading State */}
+          {loading && (
+            <div className="text-center p-5">
+              <div className="spinner-border text-primary" role="status">
+                <span className="sr-only">Loading...</span>
+              </div>
+              <p className="mt-2 text-muted">Loading announcements...</p>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && !loading && (
+            <div className="alert alert-danger" role="alert">
+              <i className="ti-alert-circle mr-2"></i>
+              <strong>Error:</strong> {error}
+              <button 
+                className="btn btn-sm btn-outline-danger ml-3" 
+                onClick={fetchAnnouncements}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {/* Content */}
+          {!loading && !error && (
+            <>
           {/* DataTables Export Buttons and Search Section - Exact Match */}
           <div className="dataTables_wrapper dt-bootstrap4">
             <div className="row">
@@ -294,9 +428,10 @@ export default function AnnouncementsList() {
                   <thead className="thead-light">
                     <tr>
                       <th>S.NO</th>
-                      <th>District</th>
-                      <th>Venue</th>
-                      <th>Visit Date</th>
+                      <th>Title</th>
+                      <th>Description</th>
+                      <th>Date</th>
+                      <th>Departments</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -305,9 +440,10 @@ export default function AnnouncementsList() {
                       paginatedAnnouncements.map((announcement, index) => (
                         <tr key={announcement.id}>
                           <td>{startIndex + index + 1}</td>
-                          <td>{announcement.district_name}</td>
-                          <td dangerouslySetInnerHTML={{ __html: announcement.venue }}></td>
-                          <td>{new Date(announcement.date).toLocaleDateString('en-GB')}</td>
+                          <td>{announcement.title}</td>
+                          <td dangerouslySetInnerHTML={{ __html: announcement.description || '' }}></td>
+                          <td>{announcement.startDate ? new Date(announcement.startDate).toLocaleDateString('en-GB') : '-'}</td>
+                          <td>{announcement.departments?.map(d => d.name).join(', ') || '-'}</td>
                           <td>
                             <Link
                               to={`/admin/announcements/edit/${announcement.id}`}
@@ -325,26 +461,24 @@ export default function AnnouncementsList() {
                               <i className="ti-pencil"></i>
                             </Link>
 
-                            {announcement.announcements_count === 0 && (
-                              <button
-                                className="btn btn-danger ml-2"
-                                title="Delete Announcement"
-                                onClick={() => {
-                                  if (confirm('Are you sure you want to delete?')) {
-                                    console.log('Delete announcement:', announcement.id);
-                                    alert('Delete functionality will be implemented with backend API');
-                                  }
-                                }}
-                              >
+                            <button
+                              className="btn btn-danger ml-2"
+                              title="Delete Announcement"
+                              onClick={() => handleDelete(announcement.id)}
+                              disabled={deleting === announcement.id}
+                            >
+                              {deleting === announcement.id ? (
+                                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                              ) : (
                                 <i className="ti-trash"></i>
-                              </button>
-                            )}
+                              )}
+                            </button>
                           </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={10}>There is no data.</td>
+                        <td colSpan={6}>There is no data.</td>
                       </tr>
                     )}
                   </tbody>
@@ -352,6 +486,8 @@ export default function AnnouncementsList() {
               </div>
             </div>
           </div>
+            </>
+          )}
 
         </div>
 
@@ -384,8 +520,8 @@ export default function AnnouncementsList() {
             <div className="col text-center">
               <p className="mb-0">
                 Showing <strong>{startIndex + 1}</strong> to{' '}
-                <strong>{Math.min(endIndex, filteredAnnouncements.length)}</strong> of total{' '}
-                <strong>{filteredAnnouncements.length}</strong> records.
+                <strong>{Math.min(endIndex, USE_MOCK_DATA ? filteredAnnouncements.length : total)}</strong> of total{' '}
+                <strong>{USE_MOCK_DATA ? filteredAnnouncements.length : total}</strong> records.
               </p>
             </div>
             {/* Pagination Links */}
