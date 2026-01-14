@@ -41,7 +41,8 @@ export interface Constituency {
 
 export interface ListCandidatesParams {
   page?: number;
-  perPage?: number;
+  limit?: number;
+  search?: string;
   party?: string;
   constituencyId?: number;
 }
@@ -73,8 +74,11 @@ export const listCandidates = async (
   if (params?.page) {
     queryParams.append('page', params.page.toString());
   }
-  if (params?.perPage) {
-    queryParams.append('perPage', params.perPage.toString());
+  if (params?.limit) {
+    queryParams.append('limit', params.limit.toString());
+  }
+  if (params?.search) {
+    queryParams.append('search', params.search);
   }
   if (params?.party) {
     queryParams.append('party', params.party);
@@ -84,16 +88,16 @@ export const listCandidates = async (
   }
 
   const url = `/candidates${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-  const response = await api.get<ApiResponse<PaginatedResponse<Candidate>>>(url);
-  return response.data.data;
+  const response = await api.get<PaginatedResponse<Candidate>>(url);
+  return response.data;
 };
 
 /**
  * Get a single candidate by ID
  */
-export const getCandidate = async (id: number): Promise<Candidate> => {
+export const getCandidate = async (id: number): Promise<ApiResponse<Candidate>> => {
   const response = await api.get<ApiResponse<Candidate>>(`/candidates/${id}`);
-  return response.data.data;
+  return response.data;
 };
 
 /**
@@ -101,9 +105,9 @@ export const getCandidate = async (id: number): Promise<Candidate> => {
  */
 export const createCandidate = async (
   data: CreateCandidateRequest
-): Promise<Candidate> => {
+): Promise<ApiResponse<Candidate>> => {
   const response = await api.post<ApiResponse<Candidate>>('/candidates', data);
-  return response.data.data;
+  return response.data;
 };
 
 /**
@@ -112,9 +116,9 @@ export const createCandidate = async (
 export const updateCandidate = async (
   id: number,
   data: UpdateCandidateRequest
-): Promise<Candidate> => {
+): Promise<ApiResponse<Candidate>> => {
   const response = await api.patch<ApiResponse<Candidate>>(`/candidates/${id}`, data);
-  return response.data.data;
+  return response.data;
 };
 
 /**
@@ -127,7 +131,7 @@ export const deleteCandidate = async (id: number): Promise<void> => {
 /**
  * List constituencies
  */
-export const listConstituencies = async (): Promise<Constituency[]> => {
+export const listConstituencies = async (): Promise<ApiResponse<Constituency[]>> => {
   const response = await api.get<ApiResponse<Constituency[]>>('/candidates/constituencies');
-  return response.data.data;
+  return response.data;
 };

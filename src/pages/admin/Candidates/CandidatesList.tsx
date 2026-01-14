@@ -84,15 +84,10 @@ export default function CandidatesList() {
         alert('Candidate deleted successfully!');
       } else {
         // Real API delete
-        const response = await candidateService.deleteCandidate(candidateId);
-        
-        if (response.success) {
-          // Refresh the list
-          await fetchCandidates();
-          alert('Candidate deleted successfully!');
-        } else {
-          alert(response.message || 'Failed to delete candidate');
-        }
+        await candidateService.deleteCandidate(candidateId);
+        // Refresh the list
+        await fetchCandidates();
+        alert('Candidate deleted successfully!');
       }
     } catch (err: any) {
       console.error('Error deleting candidate:', err);
