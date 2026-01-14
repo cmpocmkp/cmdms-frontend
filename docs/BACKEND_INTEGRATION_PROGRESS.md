@@ -307,7 +307,7 @@ This document tracks all backend API integration work for the CMDMS frontend. Al
   - ✅ `POST /api/kpi/:id/data` - Add KPI data
   - ✅ `GET /api/kpi/:id/data` - Get KPI data
 
-**Services Total: 23/30+ ✅** (Core + Utility services)
+**Services Total: 24/30+ ✅** (Core + Utility services)
 
 ---
 
@@ -1049,11 +1049,21 @@ This document tracks all backend API integration work for the CMDMS frontend. Al
   - ✅ List constituencies
   - ⏳ Pages integration pending
 
-#### 3.21 Senate Meetings ⏳
-- **Service:** Not created
-- **Pages:** Not integrated
-- **Status:** ⏳ Pending
-- **Endpoints:** ✅ Documented in API guide
+#### 3.21 Senate Meetings ✅
+- **Service:** ✅ Created (`senateMeetingService.ts`)
+- **Pages:** ✅ Integrated
+  - ✅ SenateMeetingsList.tsx - List senate meetings with pagination, department filtering
+- **Status:** ✅ Complete
+- **Priority:** Medium
+- **Endpoints:** ✅ All documented endpoints integrated
+- **Completion Date:** Current session
+- **Features:**
+  - ✅ Real API integration (list, get, create, update, delete) - All documented endpoints
+  - ✅ Server-side pagination and filtering
+  - ✅ Department filtering (for department users)
+  - ✅ Loading states and error handling
+  - ✅ Only documented fields used from API (title, date)
+  - ✅ Simple list view for department users
 
 ---
 
@@ -1190,6 +1200,8 @@ This document tracks all backend API integration work for the CMDMS frontend. Al
 - ✅ Created reusable FileList component for displaying attached files
 - ✅ Created Dashboard service (`dashboardService.ts`) with dashboard statistics and department performance endpoints
 - ✅ Integrated AdminDashboard page with real API (dashboard statistics and department performance)
+- ✅ Created Senate Meetings service (`senateMeetingService.ts`) with all CRUD endpoints
+- ✅ Integrated SenateMeetingsList page with real API (department filtering, pagination)
 - ✅ Updated progress document
 
 ### 2025-01-XX (Initial Session)
