@@ -271,3 +271,4 @@ export const deleteDepartmentType = async (id: number): Promise<ApiResponse<void
 };
 
 
+

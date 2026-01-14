@@ -125,3 +125,4 @@ curl -X POST 'https://cmdms-backend-production.up.railway.app/api/sectorial-meet
 - The API structure (title, date, sector) is simpler than the frontend mock structure (which includes time, meetingType, meetingNumber, departments, attendees, attachments, etc.)
 
 
+

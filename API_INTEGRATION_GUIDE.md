@@ -770,6 +770,81 @@ curl -X POST 'https://cmdms-backend-production.up.railway.app/api/ptf/meetings' 
   }'
 ```
 
+### Get PTF Meeting
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/ptf/meetings/5' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Update PTF Meeting
+```bash
+curl -X PATCH 'https://cmdms-backend-production.up.railway.app/api/ptf/meetings/5' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"venue":"Commissioner Office"}'
+```
+
+### Delete PTF Meeting
+```bash
+curl -X DELETE 'https://cmdms-backend-production.up.railway.app/api/ptf/meetings/5' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Additional PTF Issue Operations
+
+#### Update PTF Issue
+```bash
+curl -X PATCH 'https://cmdms-backend-production.up.railway.app/api/ptf/issues/20' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"priority":"medium"}'
+```
+
+#### Delete PTF Issue
+```bash
+curl -X DELETE 'https://cmdms-backend-production.up.railway.app/api/ptf/issues/20' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+#### Update PTF Issue Status
+```bash
+curl -X PATCH 'https://cmdms-backend-production.up.railway.app/api/ptf/issues/20/status' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "status": "resolved",
+    "remarks": "Issue resolved after inspection"
+  }'
+```
+
+#### Assign PTF Issue
+```bash
+curl -X POST 'https://cmdms-backend-production.up.railway.app/api/ptf/issues/20/assign' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "primaryDepartmentId": 15,
+    "supportingDepartments": [10, 12]
+  }'
+```
+
+#### Get PTF Issue Responses
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/ptf/issues/20/responses' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+#### Add PTF Issue Response
+```bash
+curl -X POST 'https://cmdms-backend-production.up.railway.app/api/ptf/issues/20/responses' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "response": "Team dispatched to location",
+    "departmentId": 15
+  }'
+```
+
 ---
 
 ## Boards
@@ -800,6 +875,390 @@ curl -X PATCH 'https://cmdms-backend-production.up.railway.app/api/boards/2' \
   -H 'Authorization: Bearer YOUR_TOKEN' \
   -H 'Content-Type: application/json' \
   -d '{"name":"Updated Board Name"}'
+```
+
+### Delete Board
+```bash
+curl -X DELETE 'https://cmdms-backend-production.up.railway.app/api/boards/2' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Board Members
+
+#### List Board Members
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/boards/2/members' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+#### Get Board Member
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/boards/2/members/5' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+#### Add Board Member
+```bash
+curl -X POST 'https://cmdms-backend-production.up.railway.app/api/boards/2/members' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "userId": 10,
+    "role": "Member",
+    "designation": "Director"
+  }'
+```
+
+#### Update Board Member
+```bash
+curl -X PATCH 'https://cmdms-backend-production.up.railway.app/api/boards/2/members/5' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"role": "Secretary"}'
+```
+
+#### Remove Board Member
+```bash
+curl -X DELETE 'https://cmdms-backend-production.up.railway.app/api/boards/2/members/5' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Board Meetings
+
+#### Create Board Meeting
+```bash
+curl -X POST 'https://cmdms-backend-production.up.railway.app/api/boards/2/meetings' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "title": "Board Meeting Jan 2024",
+    "date": "2024-01-25",
+    "venue": "Conference Room"
+  }'
+```
+
+#### List Board Meetings
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/boards/2/meetings' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+#### Get Board Meeting
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/boards/2/meetings/10' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+#### Update Board Meeting
+```bash
+curl -X PATCH 'https://cmdms-backend-production.up.railway.app/api/boards/2/meetings/10' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"time": "10:00 AM"}'
+```
+
+#### Delete Board Meeting
+```bash
+curl -X DELETE 'https://cmdms-backend-production.up.railway.app/api/boards/2/meetings/10' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Board Acts
+
+#### List Board Acts
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/boards/2/acts' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+#### Get Board Act
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/boards/2/acts/3' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+#### Create Board Act
+```bash
+curl -X POST 'https://cmdms-backend-production.up.railway.app/api/boards/2/acts' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "title": "Act 2024-01",
+    "description": "Establishment of new wing",
+    "date": "2024-01-15"
+  }'
+```
+
+#### Update Board Act
+```bash
+curl -X PATCH 'https://cmdms-backend-production.up.railway.app/api/boards/2/acts/3' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"status": "Approved"}'
+```
+
+#### Delete Board Act
+```bash
+curl -X DELETE 'https://cmdms-backend-production.up.railway.app/api/boards/2/acts/3' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Board Agenda Points
+
+#### List Agenda Points
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/boards/2/meetings/10/agenda-points' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+#### Get Agenda Point
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/boards/2/meetings/10/agenda-points/15' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+#### Create Agenda Point
+```bash
+curl -X POST 'https://cmdms-backend-production.up.railway.app/api/boards/2/meetings/10/agenda-points' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "title": "Budget Approval",
+    "description": "Approval of annual budget",
+    "presenter": "Finance Director"
+  }'
+```
+
+#### Update Agenda Point
+```bash
+curl -X PATCH 'https://cmdms-backend-production.up.railway.app/api/boards/2/meetings/10/agenda-points/15' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"status": "Discussed"}'
+```
+
+#### Delete Agenda Point
+```bash
+curl -X DELETE 'https://cmdms-backend-production.up.railway.app/api/boards/2/meetings/10/agenda-points/15' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+#### List Agenda Replies
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/boards/2/meetings/10/agenda-points/15/replies' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+#### Add Agenda Reply
+```bash
+curl -X POST 'https://cmdms-backend-production.up.railway.app/api/boards/2/meetings/10/agenda-points/15/replies' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "comment": "Clarification on budget item",
+    "userId": 5
+  }'
+```  -H 'Content-Type: application/json' \
+  -d '{"name":"Updated Board Name"}'
+```
+
+### Delete Board
+```bash
+curl -X DELETE 'https://cmdms-backend-production.up.railway.app/api/boards/2' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Board Members
+
+#### List Board Members
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/boards/2/members' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+#### Get Board Member
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/boards/2/members/5' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+#### Add Board Member
+```bash
+curl -X POST 'https://cmdms-backend-production.up.railway.app/api/boards/2/members' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "userId": 10,
+    "role": "Member",
+    "designation": "Secretary Finance",
+    "tenureStart": "2024-01-01",
+    "status": "active"
+  }'
+```
+
+#### Update Board Member
+```bash
+curl -X PATCH 'https://cmdms-backend-production.up.railway.app/api/boards/2/members/5' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"role":"Chairperson"}'
+```
+
+#### Remove Board Member
+```bash
+curl -X DELETE 'https://cmdms-backend-production.up.railway.app/api/boards/2/members/5' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Board Meetings
+
+#### Get Meeting
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/boards/2/meetings/10' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+#### List Meetings
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/boards/2/meetings' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+#### Create Meeting
+```bash
+curl -X POST 'https://cmdms-backend-production.up.railway.app/api/boards/2/meetings' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "sequenceNumber": "BM-001",
+    "date": "2024-02-01",
+    "venue": "Committee Room",
+    "agendaItems": [
+      {
+        "description": "Review Budget",
+        "timeline": "2024-03-01"
+      }
+    ]
+  }'
+```
+
+#### Update Meeting
+```bash
+curl -X PATCH 'https://cmdms-backend-production.up.railway.app/api/boards/2/meetings/10' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"venue":"Video Conference"}'
+```
+
+#### Delete Meeting
+```bash
+curl -X DELETE 'https://cmdms-backend-production.up.railway.app/api/boards/2/meetings/10' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Board Acts
+
+#### List Acts
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/boards/2/acts' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+#### Create Act
+```bash
+curl -X POST 'https://cmdms-backend-production.up.railway.app/api/boards/2/acts' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "Establishment Act 2024",
+    "actNumber": "ACT-2024-01",
+    "date": "2024-01-15",
+    "implementationStatus": "pending"
+  }'
+```
+
+#### Update Act
+```bash
+curl -X PATCH 'https://cmdms-backend-production.up.railway.app/api/boards/2/acts/5' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"implementationStatus":"implemented"}'
+```
+
+#### Delete Act
+```bash
+curl -X DELETE 'https://cmdms-backend-production.up.railway.app/api/boards/2/acts/5' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+## PTF - Additional Endpoints
+
+### Update PTF Issue
+```bash
+curl -X PATCH 'https://cmdms-backend-production.up.railway.app/api/ptf/issues/20' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"Updated Title"}'
+```
+
+### Delete PTF Issue
+```bash
+curl -X DELETE 'https://cmdms-backend-production.up.railway.app/api/ptf/issues/20' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Update PTF Status
+```bash
+curl -X PATCH 'https://cmdms-backend-production.up.railway.app/api/ptf/issues/20/status' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"status":"resolved", "remarks": "Issue resolved by department"}'
+```
+
+### Assign PTF Issue
+```bash
+curl -X POST 'https://cmdms-backend-production.up.railway.app/api/ptf/issues/20/assign' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"primaryDepartmentId": 10, "supportingDepartments": [12, 14]}'
+```
+
+### PTF Responses
+
+#### Get Responses
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/ptf/issues/20/responses' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+#### Add Response
+```bash
+curl -X POST 'https://cmdms-backend-production.up.railway.app/api/ptf/issues/20/responses' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"response": "Department has initiated action.", "departmentId": 10}'
+```
+
+### PTF Meetings - Additional
+
+#### Get Meeting
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/ptf/meetings/5' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+#### Update Meeting
+```bash
+curl -X PATCH 'https://cmdms-backend-production.up.railway.app/api/ptf/meetings/5' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"venue":"Updated Venue"}'
+```
+
+#### Delete Meeting
+```bash
+curl -X DELETE 'https://cmdms-backend-production.up.railway.app/api/ptf/meetings/5' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
 ```
 
 ### Delete Board
@@ -874,6 +1333,65 @@ curl -X PATCH 'https://cmdms-backend-production.up.railway.app/api/sectorial-mee
 ```bash
 curl -X DELETE 'https://cmdms-backend-production.up.railway.app/api/sectorial-meetings/15' \
   -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Get Sectoral Agenda Points
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/sectorial-meetings/15/agenda-points' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Create Sectoral Agenda Point
+```bash
+curl -X POST 'https://cmdms-backend-production.up.railway.app/api/sectorial-meetings/15/agenda-points' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "description": "Discuss new health policy",
+    "timeline": "2024-12-31",
+    "status": 1,
+    "departmentIds": [1, 5]
+  }'
+```
+
+### Get Sectoral Agenda Point
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/sectorial-meetings/15/agenda-points/5' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Update Sectoral Agenda Point
+```bash
+curl -X PATCH 'https://cmdms-backend-production.up.railway.app/api/sectorial-meetings/15/agenda-points/5' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "decision": "Approved",
+    "status": 2
+  }'
+```
+
+### Delete Sectoral Agenda Point
+```bash
+curl -X DELETE 'https://cmdms-backend-production.up.railway.app/api/sectorial-meetings/15/agenda-points/5' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Get Agenda Point Replies
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/sectorial-meetings/15/agenda-points/5/replies' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Add Agenda Point Reply
+```bash
+curl -X POST 'https://cmdms-backend-production.up.railway.app/api/sectorial-meetings/15/agenda-points/5/replies' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "content": "Department response to the agenda point",
+    "status": 1
+  }'
 ```
 
 ---
@@ -1511,6 +2029,66 @@ curl -X POST 'https://cmdms-backend-production.up.railway.app/api/letters/10/sen
 ---
 
 ## Reports
+
+### Cabinet Meetings Report
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/reports/cabinet-meetings' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Cabinet Meetings By Status
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/reports/cabinet-meetings/by-status?status=1' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Board Meetings Report
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/reports/board-meetings' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Board Acts Report
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/reports/board-acts' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Record Notes Detail Reports
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/reports/record-notes/detail-list/1/1' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Summaries for CM Report
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/reports/summaries/cm/summary' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### PTF Dashboard Report
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/reports/ptf/dashboard' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### PTIs Summary Report
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/reports/ptis/summary' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Inaugurations Report
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/reports/inaugurations' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Review Meetings Report
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/reports/review-meetings?start_date=2024-01-01&end_date=2024-12-31' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
 
 ### Dashboard Report
 ```bash
