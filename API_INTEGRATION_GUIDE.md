@@ -1891,10 +1891,17 @@ curl -X POST 'https://cmdms-backend-production.up.railway.app/api/khushhal-kpk/t
   -H 'Authorization: Bearer YOUR_TOKEN' \
   -H 'Content-Type: application/json' \
   -d '{
-    "title":"Community Development Project",
-    "description":"Build community center",
-    "districtId":5,
-    "budget":5000000
+    "title": "Community Development Project",
+    "description": "Build community center",
+    "subjectTasks": "<p>Detailed description</p>",
+    "progressSoFar": "<p>Initial planning</p>",
+    "expectedOutcomes": "<p>Better community engagement</p>",
+    "timelineNote": "<p>Phase 1 by Q1</p>",
+    "timelineDate": "2024-12-31",
+    "actionByNote": "<p>DC approval required</p>",
+    "status": 1,
+    "priority": "high",
+    "departmentIds": [1, 5]
   }'
 ```
 
@@ -1903,7 +1910,10 @@ curl -X POST 'https://cmdms-backend-production.up.railway.app/api/khushhal-kpk/t
 curl -X PATCH 'https://cmdms-backend-production.up.railway.app/api/khushhal-kpk/tasks/5' \
   -H 'Authorization: Bearer YOUR_TOKEN' \
   -H 'Content-Type: application/json' \
-  -d '{"status":"in-progress"}'
+  -d '{
+    "progressSoFar": "<p>Phase 1 completed</p>",
+    "status": 2
+  }'
 ```
 
 ### Delete Khushhal KPK Task
@@ -1917,7 +1927,39 @@ curl -X DELETE 'https://cmdms-backend-production.up.railway.app/api/khushhal-kpk
 curl -X POST 'https://cmdms-backend-production.up.railway.app/api/khushhal-kpk/tasks/5/progress' \
   -H 'Authorization: Bearer YOUR_TOKEN' \
   -H 'Content-Type: application/json' \
-  -d '{"progress":45,"notes":"Foundation work completed"}'
+  -d '{
+    "description": "<p>Weekly update</p>",
+    "type": "weekly",
+    "metrics": 45,
+    "status": 2,
+    "departmentId": 1
+  }'
+```
+
+### Get Task Replies
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/khushhal-kpk/tasks/5/replies' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
+
+### Add Task Reply
+```bash
+curl -X POST 'https://cmdms-backend-production.up.railway.app/api/khushhal-kpk/tasks/5/replies' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "reply": "Department response to the query",
+    "departmentId": 1,
+    "attachments": []
+  }'
+```
+
+### Update Department Status
+```bash
+curl -X PATCH 'https://cmdms-backend-production.up.railway.app/api/khushhal-kpk/tasks/5/departments/1/status' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"status": 2}'
 ```
 
 ---
@@ -2517,21 +2559,45 @@ Common query parameters:
 
 ---
 
-## Health Check
+## Summaries for CM
 
-### API Health Check
+### List Summaries
 ```bash
-curl 'https://cmdms-backend-production.up.railway.app/'
+curl 'https://cmdms-backend-production.up.railway.app/api/summaries?page=1&limit=10' \
+  -H 'Authorization: Bearer YOUR_TOKEN'
 ```
 
 **Response:**
 ```json
 {
-  "status": "ok",
-  "message": "CMDMS API is running"
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "referenceNumber": "SUM-2024-001",
+      "subject": "Health Infrastructure Development",
+      "description": "Summary description here",
+      "date": "2024-01-15",
+      "initiatorDepartmentId": 15,
+      "initiatorDepartment": {
+        "id": 15,
+        "name": "Health Department"
+      },
+      "status": 1,
+      "priority": "high",
+      "createdAt": "2024-01-15T10:00:00.000Z"
+    }
+  ],
+  "meta": {
+    "total": 150,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 15
+  }
 }
 ```
 
----
-
-**For support, contact the CMDMS development team.**
+### Get Summary Details
+```bash
+curl 'https://cmdms-backend-production.up.railway.app/api/summaries/1' \
+  -H 'Author
